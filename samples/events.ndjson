@@ -1,0 +1,3 @@
+{"event_id": "e-1", "userId": 42, "event_type": "page_view", "ts": "2024-03-01T12:00:00Z", "props": {"page": "/home", "duration_ms": 1200}, "tags": ["web", "organic"]}
+{"event_id": "e-2", "userId": 43, "event_type": "click", "ts": "2024-03-01T12:00:05Z", "props": {"page": "/pricing", "duration_ms": 300.5}, "tags": []}
+{"event_id": "e-3", "userId": null, "event_type": "signup", "ts": "2024-03-01T12:01:00Z", "props": {"page": "/signup"}, "tags": ["web"]}

@@ -1,0 +1,278 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`emitters > avro matches snapshot 1`] = `
+"{
+  "type": "record",
+  "name": "orders",
+  "namespace": "sales",
+  "doc": "One row per order",
+  "fields": [
+    {
+      "name": "order_id",
+      "type": "long",
+      "doc": "Primary key"
+    },
+    {
+      "name": "customer_id",
+      "type": "string"
+    },
+    {
+      "name": "amount",
+      "type": [
+        "null",
+        {
+          "type": "bytes",
+          "logicalType": "decimal",
+          "precision": 38,
+          "scale": 9
+        }
+      ],
+      "doc": "Order total in USD, incl. 'tax'",
+      "default": null
+    },
+    {
+      "name": "created_at",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-micros"
+      }
+    },
+    {
+      "name": "tags",
+      "type": [
+        "null",
+        {
+          "type": "array",
+          "items": "string"
+        }
+      ],
+      "default": null
+    },
+    {
+      "name": "shipping",
+      "type": [
+        "null",
+        {
+          "type": "record",
+          "name": "orders_shipping",
+          "fields": [
+            {
+              "name": "city",
+              "type": [
+                "null",
+                "string"
+              ],
+              "default": null
+            },
+            {
+              "name": "shipped_on",
+              "type": [
+                "null",
+                {
+                  "type": "int",
+                  "logicalType": "date"
+                }
+              ],
+              "default": null
+            }
+          ]
+        }
+      ],
+      "default": null
+    }
+  ]
+}"
+`;
+
+exports[`emitters > bq-ddl matches snapshot 1`] = `
+"CREATE TABLE IF NOT EXISTS \`sales.orders\` (
+  order_id INT64 NOT NULL OPTIONS(description="Primary key"),
+  customer_id STRING NOT NULL,
+  amount NUMERIC OPTIONS(description="Order total in USD, incl. 'tax'"),
+  created_at TIMESTAMP NOT NULL,
+  tags ARRAY<STRING>,
+  shipping STRUCT<city STRING, shipped_on DATE>
+)
+PARTITION BY DATE(created_at)
+CLUSTER BY customer_id
+OPTIONS(description="One row per order");"
+`;
+
+exports[`emitters > bq-json matches snapshot 1`] = `
+"[
+  {
+    "name": "order_id",
+    "type": "INT64",
+    "mode": "REQUIRED",
+    "description": "Primary key"
+  },
+  {
+    "name": "customer_id",
+    "type": "STRING",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "amount",
+    "type": "NUMERIC",
+    "mode": "NULLABLE",
+    "description": "Order total in USD, incl. 'tax'"
+  },
+  {
+    "name": "created_at",
+    "type": "TIMESTAMP",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "tags",
+    "type": "STRING",
+    "mode": "REPEATED"
+  },
+  {
+    "name": "shipping",
+    "type": "RECORD",
+    "mode": "NULLABLE",
+    "fields": [
+      {
+        "name": "city",
+        "type": "STRING",
+        "mode": "NULLABLE"
+      },
+      {
+        "name": "shipped_on",
+        "type": "DATE",
+        "mode": "NULLABLE"
+      }
+    ]
+  }
+]"
+`;
+
+exports[`emitters > delta-ddl matches snapshot 1`] = `
+"CREATE TABLE IF NOT EXISTS sales.orders (
+  order_id BIGINT NOT NULL COMMENT 'Primary key',
+  customer_id STRING NOT NULL,
+  amount DECIMAL(38,9) COMMENT 'Order total in USD, incl. \\'tax\\'',
+  created_at TIMESTAMP NOT NULL,
+  tags ARRAY<STRING>,
+  shipping STRUCT<city: STRING, shipped_on: DATE>
+)
+USING DELTA
+PARTITIONED BY (created_at)
+COMMENT 'One row per order';"
+`;
+
+exports[`emitters > jsonschema matches snapshot 1`] = `
+"{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "orders",
+  "description": "One row per order",
+  "type": "object",
+  "properties": {
+    "order_id": {
+      "type": "integer",
+      "description": "Primary key"
+    },
+    "customer_id": {
+      "type": "string"
+    },
+    "amount": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^-?\\\\d+(\\\\.\\\\d+)?$",
+      "description": "Order total in USD, incl. 'tax'"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "tags": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "string"
+      }
+    },
+    "shipping": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "city": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "shipped_on": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date"
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "order_id",
+    "customer_id",
+    "created_at"
+  ],
+  "additionalProperties": false
+}"
+`;
+
+exports[`emitters > pg-ddl matches snapshot 1`] = `
+"CREATE TABLE IF NOT EXISTS sales.orders (
+  order_id BIGINT NOT NULL,
+  customer_id TEXT NOT NULL,
+  amount NUMERIC(38,9),
+  created_at TIMESTAMPTZ NOT NULL,
+  tags TEXT[],
+  shipping JSONB
+);
+COMMENT ON TABLE sales.orders IS 'One row per order';
+COMMENT ON COLUMN sales.orders.order_id IS 'Primary key';
+COMMENT ON COLUMN sales.orders.amount IS 'Order total in USD, incl. ''tax''';
+-- To partition, add: PARTITION BY RANGE (created_at) to the CREATE TABLE
+CREATE INDEX IF NOT EXISTS idx_orders_customer_id ON sales.orders (customer_id);"
+`;
+
+exports[`emitters > pyspark matches snapshot 1`] = `
+"from pyspark.sql.types import (
+    StructType, StructField, ArrayType, StringType, LongType, DoubleType,
+    DecimalType, BooleanType, DateType, TimestampType, BinaryType,
+)
+
+orders_schema = StructType([
+    StructField("order_id", LongType(), False, metadata={"comment": "Primary key"}),
+    StructField("customer_id", StringType(), False),
+    StructField("amount", DecimalType(38, 9), True, metadata={"comment": "Order total in USD, incl. 'tax'"}),
+    StructField("created_at", TimestampType(), False),
+    StructField("tags", ArrayType(StringType(), True), True),
+    StructField("shipping", StructType([
+        StructField("city", StringType(), True),
+        StructField("shipped_on", DateType(), True),
+    ]), True),
+])"
+`;
+
+exports[`emitters > sf-ddl matches snapshot 1`] = `
+"CREATE TABLE IF NOT EXISTS SALES.ORDERS (
+  ORDER_ID NUMBER(38,0) NOT NULL COMMENT 'Primary key',
+  CUSTOMER_ID VARCHAR NOT NULL,
+  AMOUNT NUMBER(38,9) COMMENT 'Order total in USD, incl. ''tax''',
+  CREATED_AT TIMESTAMP_TZ NOT NULL,
+  TAGS ARRAY,
+  SHIPPING OBJECT
+)
+CLUSTER BY (CUSTOMER_ID)
+COMMENT = 'One row per order';"
+`;

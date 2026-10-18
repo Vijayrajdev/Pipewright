@@ -1,0 +1,5 @@
+Order ID,Customer Email,orderDate,Created At,Amount,Quantity,Is Gift,Zip Code,Notes
+1001,ana@example.com,2024-01-05,2024-01-05T10:15:00Z,129.99,2,true,02139,
+1002,ben@example.com,2024-01-06,2024-01-06 11:02:33,45.00,1,false,94105,Leave at door
+1003,cai@example.com,2024-01-06,2024-01-06T18:40:12+05:30,12.5,3,no,10001,
+1004,,2024-01-07,2024-01-07T08:00:00Z,300,1,yes,60601,Call before delivery

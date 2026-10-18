@@ -1,0 +1,427 @@
+@import "tailwindcss";
+
+@theme {
+  /* brand */
+  --color-ivory: #eae6de;
+  --color-ink: #226192;
+  --color-ink-deep: #1a4c73;
+  --color-ink-soft: #dbe6ef;
+  --color-coral: #ef8557;
+  --color-coral-deep: #d96a3a;
+  --color-coral-soft: #fbe3d7;
+
+  /* neutrals derived from the brand */
+  --color-surface: #f2eee7;
+  --color-paper: #f7f4ee;
+  --color-line: #cfc8bb;
+  --color-text: #1f2a36;
+  --color-muted: #5f6b77;
+
+  /* role colours that keep their meaning in both themes */
+  --color-cream: #eae6de; /* light text on blue panels and code */
+  --color-night: #1f2a36; /* dark text on coral */
+  --color-panel: #226192; /* crumpled blue paper */
+  --color-code: #1f2a36; /* code block background */
+
+  /* type: extended grotesk display, editorial serif accents, geist UI, mono code */
+  --font-display: var(--font-archivo), system-ui, sans-serif;
+  --font-label: var(--font-archivo), system-ui, sans-serif;
+  --font-serif: var(--font-instrument), Georgia, serif;
+  --font-sans: var(--font-geist), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  --animate-fade-up: fade-up 0.9s var(--ease-out-expo) both;
+  --animate-fade-in: fade-in 0.8s ease-out both;
+  --animate-pop: pop 0.6s var(--ease-spring) both;
+  --animate-row-in: row-in 0.55s var(--ease-out-expo) both;
+  --animate-rise: rise 1s var(--ease-out-expo) both;
+  --animate-wipe: wipe 1.2s var(--ease-out-expo) both;
+  --animate-draw: draw 2.2s var(--ease-out-expo) both;
+  --animate-bloom: bloom 0.7s var(--ease-spring) both;
+  --animate-sway: sway 7s ease-in-out infinite;
+  --animate-unfurl: unfurl 1.2s var(--ease-out-expo) both;
+  --animate-blink: blink 1s steps(1) infinite;
+  --animate-marquee: marquee 40s linear infinite;
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-spin-slow: spin 18s linear infinite;
+  --animate-flow: flow 1.6s linear infinite;
+  --animate-bounce-dot: bounce-dot 1.2s ease-in-out infinite;
+  --animate-progress: progress 6s linear both;
+
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(18px); filter: blur(6px); }
+    to { opacity: 1; transform: none; filter: none; }
+  }
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes pop {
+    from { opacity: 0; transform: scale(0.94) translateY(8px); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes row-in {
+    from { opacity: 0; transform: translateX(-10px); }
+    to { opacity: 1; transform: none; }
+  }
+  /* text rising out of a mask */
+  @keyframes rise {
+    from { transform: translateY(105%); }
+    to { transform: none; }
+  }
+  /* panel revealed from the right edge */
+  @keyframes wipe {
+    from { clip-path: inset(0 0 0 100%); }
+    to { clip-path: inset(0 0 0 0); }
+  }
+  /* SVG stroke drawing itself (set pathLength="1") */
+  @keyframes draw {
+    from { stroke-dashoffset: 1; }
+    to { stroke-dashoffset: 0; }
+  }
+  @keyframes bloom {
+    from { opacity: 0; transform: scale(0); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  /* a bloom opening: small and twisted to full */
+  @keyframes unfurl {
+    from { opacity: 0; transform: scale(0.15) rotate(-70deg); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes leaf {
+    from { opacity: 0; transform: scale(0); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes sway {
+    0%, 100% { transform: rotate(-1.4deg); }
+    50% { transform: rotate(1.4deg); }
+  }
+  @keyframes blink {
+    50% { opacity: 0; }
+  }
+  @keyframes marquee {
+    to { transform: translateX(-50%); }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+  @keyframes flow {
+    to { stroke-dashoffset: -24; }
+  }
+  @keyframes bounce-dot {
+    0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+    40% { transform: translateY(-5px); opacity: 1; }
+  }
+  @keyframes progress {
+    from { transform: scaleX(0); }
+    to { transform: scaleX(1); }
+  }
+}
+
+/* ── dark theme: same roles, night palette ──────────────────────────── */
+
+:root {
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --grain-blend: soft-light;
+  --color-ivory: #0e1620;
+  --color-paper: #142130;
+  --color-surface: #182636;
+  --color-line: #2b3c51;
+  --color-text: #e8e3d9;
+  --color-muted: #9aa8b6;
+  --color-ink: #7db3e2;
+  --color-ink-deep: #a3c9ee;
+  --color-ink-soft: #1b3350;
+  --color-coral-deep: #f4a07a;
+  --color-coral-soft: #3b2519;
+  --color-panel: #1d4e77;
+  --color-code: #0a1119;
+}
+
+/* theme switch: the new theme grows out of the toggle as a circle (see ThemeToggle) */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+/* ── base: ivory paper ────────────────────────────────────────────────── */
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--color-ivory);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+}
+
+/* paper grain over the whole page */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0.07;
+  mix-blend-mode: var(--grain-blend, multiply);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+::selection {
+  background: var(--color-coral);
+  color: var(--color-paper);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-coral);
+  outline-offset: 3px;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+  font-stretch: 125%;
+  letter-spacing: -0.01em;
+}
+
+@layer components {
+/* ── editorial building blocks ────────────────────────────────────────── */
+
+/* extended display type */
+.font-wide {
+  font-family: var(--font-display);
+  font-stretch: 125%;
+}
+
+/* outlined display text: BLOOM's middle line */
+.text-outline {
+  color: transparent;
+  -webkit-text-stroke: 1.5px var(--color-ink);
+}
+.text-outline-coral {
+  color: transparent;
+  -webkit-text-stroke: 1.5px var(--color-coral);
+}
+.text-outline-paper {
+  color: transparent;
+  -webkit-text-stroke: 1.5px var(--color-cream);
+}
+/* outline that floods with ink on hover */
+.outline-fill {
+  background: linear-gradient(var(--color-ink), var(--color-ink)) 0 100% / 100% 0 no-repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-stroke: 1.5px var(--color-ink);
+  transition: background-size 0.8s var(--ease-out-expo);
+}
+.outline-fill:hover {
+  background-size: 100% 100%;
+}
+
+/* tiny tracked uppercase label */
+.label {
+  font-family: var(--font-label);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  line-height: 1.7;
+}
+
+/* crumpled blue paper */
+.paper-blue {
+  background-color: var(--color-panel);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='700' height='700'%3E%3Cfilter id='c'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.011' numOctaves='5' seed='7'/%3E%3CfeDiffuseLighting lighting-color='%23fff' surfaceScale='7'%3E%3CfeDistantLight azimuth='225' elevation='48'/%3E%3C/feDiffuseLighting%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23c)'/%3E%3C/svg%3E");
+  background-size: cover;
+  background-blend-mode: multiply;
+  color: var(--color-cream);
+}
+
+/* crumpled ivory paper for cards */
+.paper {
+  background-color: var(--color-paper);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600'%3E%3Cfilter id='c'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.014' numOctaves='4' seed='3'/%3E%3CfeDiffuseLighting lighting-color='%23fff' surfaceScale='2.5'%3E%3CfeDistantLight azimuth='225' elevation='60'/%3E%3C/feDiffuseLighting%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23c)'/%3E%3C/svg%3E");
+  background-size: cover;
+  background-blend-mode: multiply;
+}
+
+/* masked line for rising text */
+.mask-line {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.04em;
+}
+
+/* SVG strokes that draw themselves: give the path pathLength="1" */
+.draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: var(--animate-draw);
+}
+
+/* leaf growing out from its stalk (leaf shapes start at their left-middle) */
+.animate-leaf {
+  transform-box: fill-box;
+  transform-origin: 0% 50%;
+  animation: leaf 0.9s var(--ease-spring) both;
+}
+
+/* button shine sweep */
+.shine {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(110deg, transparent 30%, rgb(255 255 255 / 0.4) 50%, transparent 70%);
+  transform: translateX(-120%);
+  transition: transform 0.7s var(--ease-out-expo);
+}
+.shine:hover::after {
+  transform: translateX(120%);
+}
+
+/* background that floods up from the bottom on hover */
+.flood {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+.flood::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--flood, var(--color-ink));
+  transform: scaleY(0);
+  transform-origin: bottom;
+  transition: transform 0.6s var(--ease-out-expo);
+}
+.flood:hover::before {
+  transform: scaleY(1);
+}
+
+/* spotlight that follows the cursor (set --mx / --my from JS) */
+.spotlight {
+  position: relative;
+}
+.spotlight::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+  background: radial-gradient(320px circle at var(--mx, 50%) var(--my, 50%), color-mix(in oklab, var(--color-coral) 20%, transparent), transparent 60%);
+}
+.spotlight:hover::after {
+  opacity: 1;
+}
+
+/* scroll reveal */
+.reveal {
+  opacity: 0;
+}
+.reveal.is-visible {
+  animation: var(--animate-fade-up);
+  animation-delay: var(--delay, 0ms);
+}
+
+/* underline that grows on hover */
+.link-grow {
+  background: linear-gradient(currentColor, currentColor) 0 100% / 0 1px no-repeat;
+  transition: background-size 0.4s var(--ease-out-expo);
+}
+.link-grow:hover {
+  background-size: 100% 1px;
+}
+
+}
+
+/* custom cursor (desktop only, enabled from JS) */
+.cursor-dot,
+.cursor-ring {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 70;
+  pointer-events: none;
+  border-radius: 9999px;
+  transform: translate(-50%, -50%);
+}
+.cursor-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--color-coral);
+}
+.cursor-ring {
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--color-ink);
+  transition: width 0.3s var(--ease-out-expo), height 0.3s var(--ease-out-expo), background-color 0.3s, border-color 0.3s;
+}
+.cursor-ring.is-hovering {
+  width: 64px;
+  height: 64px;
+  border-color: var(--color-coral);
+  background: color-mix(in oklab, var(--color-coral) 14%, transparent);
+}
+
+/* ── route transitions (React <ViewTransition>) ───────────────────────── */
+
+::view-transition {
+  pointer-events: none;
+}
+::view-transition-old(.page-exit) {
+  animation: 180ms ease-in both page-out;
+}
+::view-transition-new(.page-enter) {
+  animation: 520ms var(--ease-out-expo) 120ms both page-in;
+}
+@keyframes page-out {
+  to { opacity: 0; transform: translateY(-10px); filter: blur(4px); }
+}
+@keyframes page-in {
+  from { opacity: 0; transform: translateY(22px); filter: blur(6px); }
+}
+
+/* ── reduced motion: keep the design, drop the movement ───────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.001ms !important;
+  }
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+  }
+  .reveal {
+    opacity: 1;
+  }
+  .cursor-dot,
+  .cursor-ring {
+    display: none;
+  }
+}

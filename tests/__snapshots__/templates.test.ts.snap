@@ -1,0 +1,372 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`templates > dbt / bigquery matches snapshot 1`] = `
+"# dbt >= 1.8 uses \`data_tests:\`; on older versions rename it to \`tests:\`.
+version: 2
+
+models:
+  - name: orders
+    description: "One row per order."
+    columns:
+      - name: order_id
+        description: "Primary key"
+        data_tests:
+          - not_null
+          - unique
+      - name: customer_email
+        meta:
+          contains_pii: true
+      - name: amount
+      - name: tags
+      - name: created_at
+        data_tests:
+          - not_null
+      - name: updated_at
+"
+`;
+
+exports[`templates > dbt / databricks matches snapshot 1`] = `
+"# dbt >= 1.8 uses \`data_tests:\`; on older versions rename it to \`tests:\`.
+version: 2
+
+models:
+  - name: orders
+    description: "One row per order."
+    columns:
+      - name: order_id
+        description: "Primary key"
+        data_tests:
+          - not_null
+          - unique
+      - name: customer_email
+        meta:
+          contains_pii: true
+      - name: amount
+      - name: tags
+      - name: created_at
+        data_tests:
+          - not_null
+      - name: updated_at
+"
+`;
+
+exports[`templates > dbt / postgres matches snapshot 1`] = `
+"# dbt >= 1.8 uses \`data_tests:\`; on older versions rename it to \`tests:\`.
+version: 2
+
+models:
+  - name: orders
+    description: "One row per order."
+    columns:
+      - name: order_id
+        description: "Primary key"
+        data_tests:
+          - not_null
+          - unique
+      - name: customer_email
+        meta:
+          contains_pii: true
+      - name: amount
+      - name: tags
+      - name: created_at
+        data_tests:
+          - not_null
+      - name: updated_at
+"
+`;
+
+exports[`templates > dbt / snowflake matches snapshot 1`] = `
+"# dbt >= 1.8 uses \`data_tests:\`; on older versions rename it to \`tests:\`.
+version: 2
+
+models:
+  - name: orders
+    description: "One row per order."
+    columns:
+      - name: order_id
+        description: "Primary key"
+        data_tests:
+          - not_null
+          - unique
+      - name: customer_email
+        meta:
+          contains_pii: true
+      - name: amount
+      - name: tags
+      - name: created_at
+        data_tests:
+          - not_null
+      - name: updated_at
+"
+`;
+
+exports[`templates > dedupe / bigquery matches snapshot 1`] = `
+"-- Keep one row per order_id, the latest by updated_at.
+SELECT *
+FROM \`sales.orders\`
+WHERE TRUE
+QUALIFY ROW_NUMBER() OVER (
+  PARTITION BY order_id
+  ORDER BY updated_at DESC
+) = 1;"
+`;
+
+exports[`templates > dedupe / databricks matches snapshot 1`] = `
+"-- Keep one row per order_id, the latest by updated_at.
+SELECT *
+FROM sales.orders
+QUALIFY ROW_NUMBER() OVER (
+  PARTITION BY order_id
+  ORDER BY updated_at DESC
+) = 1;"
+`;
+
+exports[`templates > dedupe / postgres matches snapshot 1`] = `
+"-- Keep one row per order_id, the latest by updated_at.
+SELECT DISTINCT ON (order_id) *
+FROM sales.orders
+ORDER BY order_id, updated_at DESC;"
+`;
+
+exports[`templates > dedupe / snowflake matches snapshot 1`] = `
+"-- Keep one row per order_id, the latest by updated_at.
+SELECT *
+FROM sales.orders
+QUALIFY ROW_NUMBER() OVER (
+  PARTITION BY order_id
+  ORDER BY updated_at DESC
+) = 1;"
+`;
+
+exports[`templates > quality / bigquery matches snapshot 1`] = `
+"-- Data quality checks for orders. Each row is one check; compare observed to expected.
+SELECT 'row_count' AS check_name, COUNT(*) AS observed, '> 0' AS expected FROM \`sales.orders\`
+UNION ALL
+SELECT 'nulls_in_order_id' AS check_name, COUNT(*) - COUNT(order_id) AS observed, '= 0' AS expected FROM \`sales.orders\`
+UNION ALL
+SELECT 'nulls_in_created_at' AS check_name, COUNT(*) - COUNT(created_at) AS observed, '= 0' AS expected FROM \`sales.orders\`
+UNION ALL
+SELECT 'duplicate_order_id' AS check_name, COUNT(*) AS observed, '= 0' AS expected FROM (SELECT order_id FROM \`sales.orders\` GROUP BY order_id HAVING COUNT(*) > 1) AS dupes
+UNION ALL
+SELECT 'hours_since_latest_updated_at' AS check_name, TIMESTAMP_DIFF(CURRENT_TIMESTAMP(), MAX(updated_at), HOUR) AS observed, '<= 24' AS expected FROM \`sales.orders\`;"
+`;
+
+exports[`templates > quality / databricks matches snapshot 1`] = `
+"-- Data quality checks for orders. Each row is one check; compare observed to expected.
+SELECT 'row_count' AS check_name, COUNT(*) AS observed, '> 0' AS expected FROM sales.orders
+UNION ALL
+SELECT 'nulls_in_order_id' AS check_name, COUNT(*) - COUNT(order_id) AS observed, '= 0' AS expected FROM sales.orders
+UNION ALL
+SELECT 'nulls_in_created_at' AS check_name, COUNT(*) - COUNT(created_at) AS observed, '= 0' AS expected FROM sales.orders
+UNION ALL
+SELECT 'duplicate_order_id' AS check_name, COUNT(*) AS observed, '= 0' AS expected FROM (SELECT order_id FROM sales.orders GROUP BY order_id HAVING COUNT(*) > 1) AS dupes
+UNION ALL
+SELECT 'hours_since_latest_updated_at' AS check_name, FLOOR((UNIX_TIMESTAMP(CURRENT_TIMESTAMP()) - UNIX_TIMESTAMP(MAX(updated_at))) / 3600) AS observed, '<= 24' AS expected FROM sales.orders;"
+`;
+
+exports[`templates > quality / postgres matches snapshot 1`] = `
+"-- Data quality checks for orders. Each row is one check; compare observed to expected.
+SELECT 'row_count' AS check_name, COUNT(*) AS observed, '> 0' AS expected FROM sales.orders
+UNION ALL
+SELECT 'nulls_in_order_id' AS check_name, COUNT(*) - COUNT(order_id) AS observed, '= 0' AS expected FROM sales.orders
+UNION ALL
+SELECT 'nulls_in_created_at' AS check_name, COUNT(*) - COUNT(created_at) AS observed, '= 0' AS expected FROM sales.orders
+UNION ALL
+SELECT 'duplicate_order_id' AS check_name, COUNT(*) AS observed, '= 0' AS expected FROM (SELECT order_id FROM sales.orders GROUP BY order_id HAVING COUNT(*) > 1) AS dupes
+UNION ALL
+SELECT 'hours_since_latest_updated_at' AS check_name, FLOOR(EXTRACT(EPOCH FROM (NOW() - MAX(updated_at))) / 3600)::BIGINT AS observed, '<= 24' AS expected FROM sales.orders;"
+`;
+
+exports[`templates > quality / snowflake matches snapshot 1`] = `
+"-- Data quality checks for orders. Each row is one check; compare observed to expected.
+SELECT 'row_count' AS check_name, COUNT(*) AS observed, '> 0' AS expected FROM sales.orders
+UNION ALL
+SELECT 'nulls_in_order_id' AS check_name, COUNT(*) - COUNT(order_id) AS observed, '= 0' AS expected FROM sales.orders
+UNION ALL
+SELECT 'nulls_in_created_at' AS check_name, COUNT(*) - COUNT(created_at) AS observed, '= 0' AS expected FROM sales.orders
+UNION ALL
+SELECT 'duplicate_order_id' AS check_name, COUNT(*) AS observed, '= 0' AS expected FROM (SELECT order_id FROM sales.orders GROUP BY order_id HAVING COUNT(*) > 1) AS dupes
+UNION ALL
+SELECT 'hours_since_latest_updated_at' AS check_name, DATEDIFF('hour', MAX(updated_at), CURRENT_TIMESTAMP()) AS observed, '<= 24' AS expected FROM sales.orders;"
+`;
+
+exports[`templates > scd2 / bigquery matches snapshot 1`] = `
+"-- SCD Type 2 load from orders_staging into orders_history.
+-- orders_history has the same columns plus valid_from, valid_to, is_current.
+-- Tracked columns: customer_email, amount, tags, created_at. Run both steps in one transaction.
+-- Assumes orders_staging has one row per key; run the Deduplicate template on it first if not.
+
+-- Step 1: close the current version of rows whose tracked columns changed.
+MERGE INTO \`sales.orders_history\` AS t
+USING \`sales.orders_staging\` AS s
+ON t.order_id = s.order_id AND t.is_current
+WHEN MATCHED AND (
+    t.customer_email IS DISTINCT FROM s.customer_email
+    OR t.amount IS DISTINCT FROM s.amount
+    OR TO_JSON_STRING(t.tags) IS DISTINCT FROM TO_JSON_STRING(s.tags)
+    OR t.created_at IS DISTINCT FROM s.created_at
+  ) THEN UPDATE SET
+  valid_to = s.updated_at,
+  is_current = FALSE;
+
+-- Step 2: insert a new current version for new keys and for rows closed in step 1.
+INSERT INTO \`sales.orders_history\` (order_id, customer_email, amount, tags, created_at, updated_at, valid_from, valid_to, is_current)
+SELECT s.order_id, s.customer_email, s.amount, s.tags, s.created_at, s.updated_at, s.updated_at, NULL, TRUE
+FROM \`sales.orders_staging\` AS s
+LEFT JOIN \`sales.orders_history\` AS t
+  ON t.order_id = s.order_id AND t.is_current
+WHERE t.order_id IS NULL;"
+`;
+
+exports[`templates > scd2 / databricks matches snapshot 1`] = `
+"-- SCD Type 2 load from orders_staging into orders_history.
+-- orders_history has the same columns plus valid_from, valid_to, is_current.
+-- Tracked columns: customer_email, amount, tags, created_at. Run both steps in one transaction.
+-- Assumes orders_staging has one row per key; run the Deduplicate template on it first if not.
+
+-- Step 1: close the current version of rows whose tracked columns changed.
+MERGE INTO sales.orders_history AS t
+USING sales.orders_staging AS s
+ON t.order_id = s.order_id AND t.is_current
+WHEN MATCHED AND (
+    NOT (t.customer_email <=> s.customer_email)
+    OR NOT (t.amount <=> s.amount)
+    OR NOT (t.tags <=> s.tags)
+    OR NOT (t.created_at <=> s.created_at)
+  ) THEN UPDATE SET
+  valid_to = s.updated_at,
+  is_current = FALSE;
+
+-- Step 2: insert a new current version for new keys and for rows closed in step 1.
+INSERT INTO sales.orders_history (order_id, customer_email, amount, tags, created_at, updated_at, valid_from, valid_to, is_current)
+SELECT s.order_id, s.customer_email, s.amount, s.tags, s.created_at, s.updated_at, s.updated_at, NULL, TRUE
+FROM sales.orders_staging AS s
+LEFT JOIN sales.orders_history AS t
+  ON t.order_id = s.order_id AND t.is_current
+WHERE t.order_id IS NULL;"
+`;
+
+exports[`templates > scd2 / postgres matches snapshot 1`] = `
+"-- SCD Type 2 load from orders_staging into orders_history.
+-- orders_history has the same columns plus valid_from, valid_to, is_current.
+-- Tracked columns: customer_email, amount, tags, created_at. Run both steps in one transaction.
+-- Assumes orders_staging has one row per key; run the Deduplicate template on it first if not.
+
+-- Step 1: close the current version of rows whose tracked columns changed.
+UPDATE sales.orders_history AS t
+SET valid_to = s.updated_at, is_current = FALSE
+FROM sales.orders_staging AS s
+WHERE t.order_id = s.order_id
+  AND t.is_current
+  AND (
+    t.customer_email IS DISTINCT FROM s.customer_email
+    OR t.amount IS DISTINCT FROM s.amount
+    OR t.tags IS DISTINCT FROM s.tags
+    OR t.created_at IS DISTINCT FROM s.created_at
+  );
+
+-- Step 2: insert a new current version for new keys and for rows closed in step 1.
+INSERT INTO sales.orders_history (order_id, customer_email, amount, tags, created_at, updated_at, valid_from, valid_to, is_current)
+SELECT s.order_id, s.customer_email, s.amount, s.tags, s.created_at, s.updated_at, s.updated_at, NULL, TRUE
+FROM sales.orders_staging AS s
+LEFT JOIN sales.orders_history AS t
+  ON t.order_id = s.order_id AND t.is_current
+WHERE t.order_id IS NULL;"
+`;
+
+exports[`templates > scd2 / snowflake matches snapshot 1`] = `
+"-- SCD Type 2 load from orders_staging into orders_history.
+-- orders_history has the same columns plus valid_from, valid_to, is_current.
+-- Tracked columns: customer_email, amount, tags, created_at. Run both steps in one transaction.
+-- Assumes orders_staging has one row per key; run the Deduplicate template on it first if not.
+
+-- Step 1: close the current version of rows whose tracked columns changed.
+MERGE INTO sales.orders_history AS t
+USING sales.orders_staging AS s
+ON t.order_id = s.order_id AND t.is_current
+WHEN MATCHED AND (
+    t.customer_email IS DISTINCT FROM s.customer_email
+    OR t.amount IS DISTINCT FROM s.amount
+    OR t.tags IS DISTINCT FROM s.tags
+    OR t.created_at IS DISTINCT FROM s.created_at
+  ) THEN UPDATE SET
+  valid_to = s.updated_at,
+  is_current = FALSE;
+
+-- Step 2: insert a new current version for new keys and for rows closed in step 1.
+INSERT INTO sales.orders_history (order_id, customer_email, amount, tags, created_at, updated_at, valid_from, valid_to, is_current)
+SELECT s.order_id, s.customer_email, s.amount, s.tags, s.created_at, s.updated_at, s.updated_at, NULL, TRUE
+FROM sales.orders_staging AS s
+LEFT JOIN sales.orders_history AS t
+  ON t.order_id = s.order_id AND t.is_current
+WHERE t.order_id IS NULL;"
+`;
+
+exports[`templates > upsert / bigquery matches snapshot 1`] = `
+"-- Upsert orders_staging into orders: update changed rows, insert new ones.
+MERGE INTO \`sales.orders\` AS t
+USING (
+  SELECT * FROM \`sales.orders_staging\` WHERE TRUE
+  QUALIFY ROW_NUMBER() OVER (PARTITION BY order_id ORDER BY updated_at DESC) = 1
+) AS s
+ON t.order_id = s.order_id
+WHEN MATCHED AND (t.updated_at IS NULL OR s.updated_at > t.updated_at) THEN UPDATE SET
+  customer_email = s.customer_email,
+  amount = s.amount,
+  tags = s.tags,
+  created_at = s.created_at,
+  updated_at = s.updated_at
+WHEN NOT MATCHED THEN INSERT (order_id, customer_email, amount, tags, created_at, updated_at)
+  VALUES (s.order_id, s.customer_email, s.amount, s.tags, s.created_at, s.updated_at);"
+`;
+
+exports[`templates > upsert / databricks matches snapshot 1`] = `
+"-- Upsert orders_staging into orders: update changed rows, insert new ones.
+MERGE INTO sales.orders AS t
+USING (
+  SELECT * FROM sales.orders_staging
+  QUALIFY ROW_NUMBER() OVER (PARTITION BY order_id ORDER BY updated_at DESC) = 1
+) AS s
+ON t.order_id = s.order_id
+WHEN MATCHED AND (t.updated_at IS NULL OR s.updated_at > t.updated_at) THEN UPDATE SET
+  customer_email = s.customer_email,
+  amount = s.amount,
+  tags = s.tags,
+  created_at = s.created_at,
+  updated_at = s.updated_at
+WHEN NOT MATCHED THEN INSERT (order_id, customer_email, amount, tags, created_at, updated_at)
+  VALUES (s.order_id, s.customer_email, s.amount, s.tags, s.created_at, s.updated_at);"
+`;
+
+exports[`templates > upsert / postgres matches snapshot 1`] = `
+"-- Upsert orders_staging into orders. Requires a UNIQUE constraint on (order_id).
+INSERT INTO sales.orders AS t (order_id, customer_email, amount, tags, created_at, updated_at)
+SELECT DISTINCT ON (order_id) order_id, customer_email, amount, tags, created_at, updated_at
+FROM sales.orders_staging
+ORDER BY order_id, updated_at DESC
+ON CONFLICT (order_id) DO UPDATE SET
+  customer_email = EXCLUDED.customer_email,
+  amount = EXCLUDED.amount,
+  tags = EXCLUDED.tags,
+  created_at = EXCLUDED.created_at,
+  updated_at = EXCLUDED.updated_at
+WHERE t.updated_at IS NULL OR t.updated_at < EXCLUDED.updated_at;"
+`;
+
+exports[`templates > upsert / snowflake matches snapshot 1`] = `
+"-- Upsert orders_staging into orders: update changed rows, insert new ones.
+MERGE INTO sales.orders AS t
+USING (
+  SELECT * FROM sales.orders_staging
+  QUALIFY ROW_NUMBER() OVER (PARTITION BY order_id ORDER BY updated_at DESC) = 1
+) AS s
+ON t.order_id = s.order_id
+WHEN MATCHED AND (t.updated_at IS NULL OR s.updated_at > t.updated_at) THEN UPDATE SET
+  customer_email = s.customer_email,
+  amount = s.amount,
+  tags = s.tags,
+  created_at = s.created_at,
+  updated_at = s.updated_at
+WHEN NOT MATCHED THEN INSERT (order_id, customer_email, amount, tags, created_at, updated_at)
+  VALUES (s.order_id, s.customer_email, s.amount, s.tags, s.created_at, s.updated_at);"
+`;

@@ -1,0 +1,11 @@
+review_id,customer_id,product_id,rating,comment
+1001,101,301,5,Great phone
+1002,102,309,4,Grinds well
+1003,103,303,5,Superb sound
+1004,104,308,3,Charges slowly
+1005,105,305,4,Good battery
+1006,106,306,5,Fast charging
+1007,107,302,4,Light and quick
+1008,108,304,4,Loud for its size
+1009,109,310,2,"Dead pixel, returned"
+1010,110,307,5,Sturdy cable

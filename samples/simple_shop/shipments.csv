@@ -1,0 +1,11 @@
+shipment_id,order_id,courier,shipped_date,status
+901,601,Delhivery,2026-09-02,Delivered
+902,602,In-store pickup,2026-09-02,Delivered
+903,603,Blue Dart,2026-09-04,Delivered
+904,604,Ekart,2026-09-06,Delivered
+905,605,Delhivery,2026-09-07,Delivered
+906,606,In-store pickup,2026-09-08,Delivered
+907,607,Blue Dart,2026-09-11,In Transit
+908,608,Ekart,2026-09-13,Delivered
+909,609,Delhivery,2026-09-16,Returned
+910,610,India Post,2026-09-19,In Transit

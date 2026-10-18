@@ -1,0 +1,16 @@
+relationship_id,from_table,from_column,to_table,to_column,relationship,example_join
+1,customers,city_id,cities,city_id,many-to-one,customers c JOIN cities ci ON c.city_id = ci.city_id
+2,suppliers,city_id,cities,city_id,many-to-one,suppliers s JOIN cities ci ON s.city_id = ci.city_id
+3,stores,city_id,cities,city_id,many-to-one,stores st JOIN cities ci ON st.city_id = ci.city_id
+4,products,category_id,categories,category_id,many-to-one,products p JOIN categories cat ON p.category_id = cat.category_id
+5,products,supplier_id,suppliers,supplier_id,many-to-one,products p JOIN suppliers s ON p.supplier_id = s.supplier_id
+6,employees,store_id,stores,store_id,many-to-one,employees e JOIN stores st ON e.store_id = st.store_id
+7,orders,customer_id,customers,customer_id,many-to-one,orders o JOIN customers c ON o.customer_id = c.customer_id
+8,orders,store_id,stores,store_id,many-to-one,orders o JOIN stores st ON o.store_id = st.store_id
+9,orders,employee_id,employees,employee_id,many-to-one,orders o JOIN employees e ON o.employee_id = e.employee_id
+10,order_items,order_id,orders,order_id,many-to-one,order_items oi JOIN orders o ON oi.order_id = o.order_id
+11,order_items,product_id,products,product_id,many-to-one,order_items oi JOIN products p ON oi.product_id = p.product_id
+12,payments,order_id,orders,order_id,one-to-one,payments pay JOIN orders o ON pay.order_id = o.order_id
+13,shipments,order_id,orders,order_id,one-to-one,shipments sh JOIN orders o ON sh.order_id = o.order_id
+14,reviews,customer_id,customers,customer_id,many-to-one,reviews r JOIN customers c ON r.customer_id = c.customer_id
+15,reviews,product_id,products,product_id,many-to-one,reviews r JOIN products p ON r.product_id = p.product_id
