@@ -1,7 +1,6 @@
-"use client";
-
 /**
- * Minimal IndexedDB key-value store. IndexedDB holds far more than
+ * Minimal IndexedDB key-value store, shared by the page and the file-loading
+ * worker (IndexedDB works in both). IndexedDB holds far more than
  * localStorage, stores Sets and arrays natively (structured clone) and doesn't
  * block the page while writing. Every call degrades to a no-op when storage
  * is unavailable (private mode, blocked site data).
@@ -46,3 +45,9 @@ export const idbGet = <T,>(key: string) => run<T>("readonly", (s) => s.get(key) 
 export const idbSet = (key: string, value: unknown) => run("readwrite", (s) => s.put(value, key));
 export const idbDelete = (key: string) => run("readwrite", (s) => s.delete(key));
 export const idbKeys = () => run<IDBValidKey[]>("readonly", (s) => s.getAllKeys());
+
+/** Where each table's heavy data lives: sample rows and key hashes are stored apart, so the diagram can come back before the rows do. */
+export const rowsKey = (tableId: string) => `rows:${tableId}`;
+export const keysKey = (tableId: string) => `keys:${tableId}`;
+/** Pre-hash format: { rows, keySets: Record<string, Set<string>> } */
+export const legacyKey = (tableId: string) => `table:${tableId}`;

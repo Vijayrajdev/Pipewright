@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="560" viewBox="0 0 1280 560" role="img" aria-label="Pipewright: your junior data engineer">
+  <defs>
+    <!-- paper grain for the blue panel -->
+    <filter id="crumple" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.012 0.02" numOctaves="3" seed="7" result="noise"/>
+      <feDiffuseLighting in="noise" lighting-color="#ffffff" surfaceScale="2.2" result="light">
+        <feDistantLight azimuth="235" elevation="58"/>
+      </feDiffuseLighting>
+      <feComposite in="light" in2="SourceGraphic" operator="in" result="lit"/>
+      <feBlend in="SourceGraphic" in2="lit" mode="multiply"/>
+    </filter>
+    <radialGradient id="petal" cx="50%" cy="85%" r="80%">
+      <stop offset="0" stop-color="#d96a3a"/>
+      <stop offset="0.55" stop-color="#ef8557"/>
+      <stop offset="1" stop-color="#f6b08f"/>
+    </radialGradient>
+    <g id="bloom">
+      <g fill="url(#petal)">
+        <ellipse cx="0" cy="-44" rx="30" ry="44"/>
+        <ellipse cx="0" cy="-44" rx="30" ry="44" transform="rotate(60)"/>
+        <ellipse cx="0" cy="-44" rx="30" ry="44" transform="rotate(120)"/>
+        <ellipse cx="0" cy="-44" rx="30" ry="44" transform="rotate(180)"/>
+        <ellipse cx="0" cy="-44" rx="30" ry="44" transform="rotate(240)"/>
+        <ellipse cx="0" cy="-44" rx="30" ry="44" transform="rotate(300)"/>
+      </g>
+      <g fill="#ef8557" opacity="0.9" transform="rotate(30) scale(0.62)">
+        <ellipse cx="0" cy="-44" rx="30" ry="44"/>
+        <ellipse cx="0" cy="-44" rx="30" ry="44" transform="rotate(60)"/>
+        <ellipse cx="0" cy="-44" rx="30" ry="44" transform="rotate(120)"/>
+        <ellipse cx="0" cy="-44" rx="30" ry="44" transform="rotate(180)"/>
+        <ellipse cx="0" cy="-44" rx="30" ry="44" transform="rotate(240)"/>
+        <ellipse cx="0" cy="-44" rx="30" ry="44" transform="rotate(300)"/>
+      </g>
+      <circle r="22" fill="#d96a3a"/>
+      <circle r="9" fill="#eae6de"/>
+    </g>
+  </defs>
+
+  <!-- ivory page -->
+  <rect width="1280" height="560" fill="#eae6de"/>
+
+  <!-- top bar: logo, wordmark, labels -->
+  <g transform="translate(56 40) scale(0.9)">
+    <rect width="48" height="48" rx="12" fill="#226192"/>
+    <path d="M7 36 H20 a9 9 0 0 0 9 -9 V20" fill="none" stroke="#eae6de" stroke-width="7" stroke-linecap="round"/>
+    <rect x="9.5" y="31" width="4" height="10" rx="1.5" fill="#ef8557"/>
+    <g fill="#ef8557">
+      <ellipse cx="29" cy="7.6" rx="3.3" ry="4.4"/>
+      <ellipse cx="29" cy="7.6" rx="3.3" ry="4.4" transform="rotate(60 29 12)"/>
+      <ellipse cx="29" cy="7.6" rx="3.3" ry="4.4" transform="rotate(120 29 12)"/>
+      <ellipse cx="29" cy="7.6" rx="3.3" ry="4.4" transform="rotate(180 29 12)"/>
+      <ellipse cx="29" cy="7.6" rx="3.3" ry="4.4" transform="rotate(240 29 12)"/>
+      <ellipse cx="29" cy="7.6" rx="3.3" ry="4.4" transform="rotate(300 29 12)"/>
+    </g>
+    <circle cx="29" cy="12" r="3.2" fill="#d96a3a"/>
+  </g>
+  <text x="112" y="72" font-family="'Arial Black', 'Helvetica Neue', Arial, sans-serif" font-weight="900" font-size="22" letter-spacing="1" fill="#226192">PIPE<tspan fill="none" stroke="#226192" stroke-width="1.1">WRIGHT</tspan></text>
+  <g font-family="'Helvetica Neue', Arial, sans-serif" font-size="12" font-weight="700" letter-spacing="2.4" fill="#1f2a36" opacity="0.7">
+    <text x="760" y="68">DATA MODEL</text>
+    <text x="880" y="68">SCHEMA</text>
+    <text x="966" y="68">QUALITY</text>
+    <text x="1058" y="68">PIPELINES</text>
+    <text x="1170" y="68" fill="#226192" opacity="1">DOCS</text>
+    <circle cx="1188" cy="80" r="2.5" fill="#ef8557" opacity="1"/>
+  </g>
+
+  <!-- stacked headline: solid / outline / solid -->
+  <g font-family="'Arial Black', 'Helvetica Neue', Arial, sans-serif" font-weight="900" letter-spacing="-2">
+    <text x="52" y="222" font-size="100" fill="#226192">YOUR</text>
+    <text x="52" y="330" font-size="100" fill="none" stroke="#226192" stroke-width="2.4">JUNIOR</text>
+    <text x="52" y="438" font-size="100" fill="#226192">DATA ENG.</text>
+  </g>
+
+  <!-- small label with a vertical rule -->
+  <rect x="56" y="494" width="2" height="34" fill="#ef8557"/>
+  <text x="70" y="507" font-family="'Helvetica Neue', Arial, sans-serif" font-size="12" font-weight="700" letter-spacing="2.4" fill="#1f2a36">SCHEMAS · DATA MODELS · SQL · TESTS · PIPELINES</text>
+  <text x="70" y="526" font-family="'Helvetica Neue', Arial, sans-serif" font-size="12" letter-spacing="1.6" fill="#5f6b77">DRAFTED IN YOUR BROWSER, READY FOR REVIEW</text>
+
+  <!-- crumpled blue panel -->
+  <rect x="780" y="120" width="452" height="400" fill="#226192" filter="url(#crumple)"/>
+  <text x="1206" y="152" text-anchor="end" font-family="'Helvetica Neue', Arial, sans-serif" font-size="13" font-weight="700" letter-spacing="2.4" fill="#eae6de">01 / 08</text>
+  <rect x="1204" y="176" width="2" height="60" fill="#eae6de" opacity="0.6"/>
+  <text x="1192" y="190" text-anchor="end" font-family="'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="700" letter-spacing="2.2" fill="#eae6de" opacity="0.85">INFER</text>
+  <text x="1192" y="210" text-anchor="end" font-family="'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="700" letter-spacing="2.2" fill="#eae6de" opacity="0.85">MODEL</text>
+  <text x="1192" y="230" text-anchor="end" font-family="'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="700" letter-spacing="2.2" fill="#eae6de" opacity="0.85">SHIP</text>
+  <text x="1210" y="498" text-anchor="end" font-family="'Arial Black', 'Helvetica Neue', Arial, sans-serif" font-weight="900" font-size="150" letter-spacing="-4" fill="none" stroke="#eae6de" stroke-width="1.6" opacity="0.5">PW</text>
+
+  <!-- coral flowers overlapping the panel edge, on curving stems -->
+  <g stroke="#b9532a" stroke-width="5" fill="none" stroke-linecap="round">
+    <path d="M760 560 C 770 470, 820 420, 842 330"/>
+    <path d="M760 560 C 790 500, 900 470, 952 402"/>
+    <path d="M760 560 C 760 500, 730 470, 724 438"/>
+  </g>
+  <g fill="#e07a4c">
+    <path d="M800 452 q 40 -36 64 -10 q -30 30 -64 10 z"/>
+    <path d="M770 498 q -44 -20 -34 -54 q 34 18 34 54 z"/>
+    <path d="M880 474 q 46 -12 56 18 q -40 14 -56 -18 z"/>
+  </g>
+  <use href="#bloom" transform="translate(842 318) scale(1.05) rotate(8)"/>
+  <use href="#bloom" transform="translate(954 396) scale(0.78) rotate(-14)"/>
+  <use href="#bloom" transform="translate(724 430) scale(0.6) rotate(22)"/>
+</svg>

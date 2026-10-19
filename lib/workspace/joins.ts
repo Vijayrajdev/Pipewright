@@ -99,8 +99,15 @@ export function runJoin(ws: Workspace, plan: JoinPlan, limit = 5000): { columns:
   const base = byId.get(plan.base);
   if (!base) return { columns: [], rows: [] };
 
-  const prefix = (t: WsTable, r: Row | undefined) =>
-    Object.fromEntries(t.fields.map((f) => [`${t.name}.${f.name}`, r ? r[f.name] : null]));
+  // "table.column" names built once per table, not once per row
+  const names = new Map<string, [string, string][]>();
+  const prefix = (t: WsTable, r: Row | undefined) => {
+    let cols = names.get(t.id);
+    if (!cols) names.set(t.id, (cols = t.fields.map((f) => [`${t.name}.${f.name}`, f.name])));
+    const out: Row = {};
+    for (const [key, src] of cols) out[key] = r ? r[src] : null;
+    return out;
+  };
 
   let result: Row[] = base.rows.map((r) => prefix(base, r));
   const columns = base.fields.map((f) => `${base.name}.${f.name}`);
@@ -115,7 +122,10 @@ export function runJoin(ws: Workspace, plan: JoinPlan, limit = 5000): { columns:
       const v = r[s.rightColumn];
       if (v === null || v === undefined || v === "") continue;
       const k = keyOf(v);
-      index.set(k, [...(index.get(k) ?? []), r]);
+      // push, not spread: rebuilding the array per row is quadratic on repeated keys
+      const bucket = index.get(k);
+      if (bucket) bucket.push(r);
+      else index.set(k, [r]);
     }
     const matchedRight = new Set<Row>();
     const next: Row[] = [];

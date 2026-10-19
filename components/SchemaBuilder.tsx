@@ -8,7 +8,9 @@ import { applyDescriptions } from "@/lib/schema/edit";
 import { toSnakeCase } from "@/lib/schema/normalize";
 import { autoFill } from "@/lib/rules/describe";
 import { useCurrentSchema, useRecent } from "@/lib/store";
-import { useAiStatus } from "@/lib/useAiStatus";
+import { useAi } from "@/lib/ai/useAi";
+import { openAiSettings } from "@/lib/ai/settings";
+import { describeCopyPrompt, parseDescriptions, type DescribeResponse } from "@/lib/ai/shared";
 import { InputPanel } from "./InputPanel";
 import { SchemaGrid } from "./SchemaGrid";
 import { OutputPanel } from "./OutputPanel";
@@ -23,7 +25,10 @@ function tableNameFromFile(fileName?: string) {
 export function SchemaBuilder() {
   const [schema, setSchema] = useCurrentSchema();
   const [, remember] = useRecent();
-  const ai = useAiStatus();
+  const { engine } = useAi();
+  // copy-a-prompt flow for people without AI set up: null = closed
+  const [pasteBack, setPasteBack] = useState<string | null>(null);
+  const [copiedPrompt, setCopiedPrompt] = useState(false);
   const [error, setError] = useState<string>();
   const [detected, setDetected] = useState<InputKind>();
   const [describing, setDescribing] = useState(false);
@@ -59,27 +64,34 @@ export function SchemaBuilder() {
     );
   }
 
+  function applyAnswer(data: DescribeResponse) {
+    if (!schema) return;
+    const byPath = new Map(data.columns.map((c) => [c.path, c]));
+    setSchema({ ...schema, fields: applyDescriptions(schema.fields, byPath) });
+  }
+
   async function suggestDescriptions() {
     if (!schema) return;
+    if (!engine) {
+      setPasteBack("");
+      return;
+    }
     setDescribing(true);
     setError(undefined);
     try {
-      const res = await fetch("/api/ai/describe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ schema }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Request failed");
-      const byPath = new Map<string, { description: string; pii: boolean }>(
-        (data.columns as { path: string; description: string; pii: boolean }[]).map((c) => [c.path, c]),
-      );
-      setSchema({ ...schema, fields: applyDescriptions(schema.fields, byPath) });
+      applyAnswer(await engine.describe(schema));
     } catch (err) {
       setError((err as Error).message);
     } finally {
       setDescribing(false);
     }
+  }
+
+  async function copyDescribePrompt() {
+    if (!schema) return;
+    await navigator.clipboard.writeText(describeCopyPrompt(schema));
+    setCopiedPrompt(true);
+    setTimeout(() => setCopiedPrompt(false), 1800);
   }
 
   function save() {
@@ -111,11 +123,14 @@ export function SchemaBuilder() {
                 <Button variant="accent" onClick={autoFillDescriptions} title="Free: drafts descriptions and flags PII from column names">
                   Auto-fill descriptions
                 </Button>
-                {ai.enabled && (
-                  <Button variant="ghost" onClick={suggestDescriptions} disabled={describing} title={`${ai.model} writes descriptions and flags PII`}>
-                    {describing ? "Writing…" : ai.provider === "ollama" ? "✨ Ask local AI" : "✨ Ask Claude"}
-                  </Button>
-                )}
+                <Button
+                  variant="ghost"
+                  onClick={suggestDescriptions}
+                  disabled={describing}
+                  title={engine ? `${engine.model} writes descriptions and flags PII` : "Use any AI chat you already have: copy a prompt, paste the answer back"}
+                >
+                  {describing ? "Writing…" : engine ? `✨ Ask ${engine.kind === "browser" || engine.kind === "ollama" ? "local AI" : engine.kind === "server" ? "AI" : (engine.vendor ?? "AI")}` : "✨ Describe with any AI"}
+                </Button>
                 <Button variant="ghost" onClick={save}>
                   {saved ? "Saved" : "Save to recent"}
                 </Button>
@@ -133,6 +148,41 @@ export function SchemaBuilder() {
                 </Link>
               </div>
             </div>
+            {pasteBack !== null && (
+              <div className="mb-5 animate-fade-in border border-dashed border-coral p-4">
+                <p className="label mb-2 text-coral-deep">Describe with any AI, no key needed</p>
+                <ol className="mb-3 list-decimal space-y-1 pl-5 text-sm text-muted">
+                  <li>
+                    <button onClick={copyDescribePrompt} className="font-semibold text-ink underline">{copiedPrompt ? "Copied ✓" : "Copy the prompt"}</button> and paste it into
+                    any AI chat you use (Claude, ChatGPT, Gemini, Copilot). Only column names and types are in it, no rows.
+                  </li>
+                  <li>Paste its answer below and click Apply.</li>
+                </ol>
+                <textarea
+                  value={pasteBack}
+                  onChange={(e) => setPasteBack(e.target.value)}
+                  rows={4}
+                  placeholder='{"columns":[{"path":"…","description":"…","pii":false}]}'
+                  className="w-full border border-line bg-paper px-3 py-2 font-mono text-xs focus:border-ink focus:outline-none"
+                />
+                <div className="mt-2 flex flex-wrap items-center gap-3">
+                  <Button
+                    disabled={!pasteBack.trim()}
+                    onClick={() => {
+                      const data = parseDescriptions(pasteBack);
+                      if (!data) return setError("Couldn't read that answer. Paste the AI's JSON reply as-is.");
+                      setError(undefined);
+                      applyAnswer(data);
+                      setPasteBack(null);
+                    }}
+                  >
+                    Apply descriptions
+                  </Button>
+                  <button onClick={() => setPasteBack(null)} className="label link-grow text-muted">Cancel</button>
+                  <button onClick={openAiSettings} className="label link-grow ml-auto text-ink">Or set up AI →</button>
+                </div>
+              </div>
+            )}
 
             {filled && (
               <div className="mb-4">

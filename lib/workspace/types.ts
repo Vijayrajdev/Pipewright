@@ -15,6 +15,12 @@ export interface ColumnStats {
   unique?: boolean;
   /** distinct tracking stopped at the cap, so `unique`/`distinct` cover only the values seen before it */
   capped?: boolean;
+  /** most common values in the sample, computed once at load time */
+  top?: { value: string; count: number }[];
+  /** distinct values in the sample (for columns without an exact count) */
+  sampleDistinct?: number;
+  /** every value of a low-cardinality column (status, country…), sorted; feeds accepted_values tests */
+  enumValues?: string[];
 }
 
 export interface WsTable {
@@ -25,11 +31,13 @@ export interface WsTable {
   rows: Row[];
   /** total rows in the source file */
   rowCount: number;
+  /** size of the sample; known before the rows themselves are restored from storage */
+  sampleCount?: number;
   source?: string;
   /** full-file stats per column */
   stats?: Record<string, ColumnStats>;
-  /** full-file distinct values of key-like columns, for exact key and relationship detection */
-  keySets?: Record<string, Set<string>>;
+  /** full-file distinct values of key-like columns as sorted 53-bit hashes (see keys.ts), for exact key and relationship detection */
+  keyHashes?: Record<string, Float64Array>;
 }
 
 export interface ColumnRef {

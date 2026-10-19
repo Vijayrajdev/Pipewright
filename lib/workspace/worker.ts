@@ -7,16 +7,30 @@
 import Papa from "papaparse";
 import { ColumnNamer, TableBuilder } from "./builder";
 import { isJsonFile } from "./load";
-import type { Row } from "./types";
+import type { Row, WsTable } from "./types";
+import { idbSet, keysKey, rowsKey } from "@/lib/idb";
 
 export type WorkerRequest = { file: File; name: string };
 export type WorkerResponse =
   | { type: "progress"; bytes: number; total: number; rows: number }
-  | { type: "done"; table: ReturnType<TableBuilder["finish"]> }
+  /** `saved`: the worker already wrote the rows and key hashes to IndexedDB, so the page doesn't have to */
+  | { type: "done"; table: WsTable; saved: boolean }
   | { type: "error"; message: string };
 
 const ctx = self as unknown as DedicatedWorkerGlobalScope;
 const post = (msg: WorkerResponse) => ctx.postMessage(msg);
+
+/**
+ * Save the heavy parts here, off the page, then hand the table over. Key
+ * hashes are transferred (moved, not copied), so the page receives them for free.
+ */
+async function finish(builder: TableBuilder) {
+  const table = builder.finish();
+  const [rowsOk, keysOk] = await Promise.all([idbSet(rowsKey(table.id), table.rows), idbSet(keysKey(table.id), table.keyHashes ?? {})]);
+  const saved = rowsOk !== undefined && keysOk !== undefined;
+  const transfer = Object.values(table.keyHashes ?? {}).map((a) => a.buffer as ArrayBuffer);
+  ctx.postMessage({ type: "done", table, saved } satisfies WorkerResponse, transfer);
+}
 
 /** JSON arrays can't be streamed with the platform parser, so cap them. */
 const MAX_JSON_ARRAY_BYTES = 300 * 1024 * 1024;
@@ -71,7 +85,7 @@ ctx.onmessage = async (e: MessageEvent<WorkerRequest>) => {
         }, progress);
       }
       if (!builder.rowCount) throw new Error(`${file.name}: expected JSON objects.`);
-      post({ type: "done", table: builder.finish() });
+      await finish(builder);
       return;
     }
 
@@ -92,7 +106,7 @@ ctx.onmessage = async (e: MessageEvent<WorkerRequest>) => {
     });
     if (!builder.rowCount) throw new Error(`${file.name}: no rows found.`);
     progress(file.size);
-    post({ type: "done", table: builder.finish() });
+    await finish(builder);
   } catch (err) {
     post({ type: "error", message: (err as Error).message });
   }

@@ -114,6 +114,21 @@ export default function Home() {
               </Reveal>
             );
           })}
+          {/* last tile: the manual */}
+          <Reveal delay={(TOOLS.length % 3) * 90}>
+            <TiltCard max={4} className="h-full">
+              <Link href="/docs" className="group flex h-full flex-col justify-between border-r border-b border-line bg-coral p-6 text-night transition-colors duration-500 hover:bg-coral-deep">
+                <div className="flex items-start justify-between">
+                  <span className="font-serif text-3xl italic">§</span>
+                  <span className="label translate-x-2 opacity-0 transition-all duration-500 group-hover:translate-x-0 group-hover:opacity-100">Read →</span>
+                </div>
+                <div>
+                  <h3 className="mt-6 text-xl font-black uppercase">New here? Read the docs</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-night/80">A five-minute tour, then every tool explained step by step, with tips and answers to common questions.</p>
+                </div>
+              </Link>
+            </TiltCard>
+          </Reveal>
         </div>
       </section>
 

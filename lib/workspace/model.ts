@@ -1,32 +1,14 @@
 import { entityName } from "@/lib/rules/describe";
 import type { Field } from "@/lib/schema/types";
 import { keyOf } from "./profile";
+import { hashesFromRows, overlapSorted } from "./keys";
 import { relationId, type Relation, type Workspace, type WsTable } from "./types";
-
-/** Share of `fk` values present in `pk`. Checks at most 50k values so huge columns stay fast. */
-function overlapOf(fk: Set<string>, pk: Set<string>): number | null {
-  if (!fk.size || !pk.size) return null;
-  let hit = 0;
-  let seen = 0;
-  for (const v of fk) {
-    if (pk.has(v)) hit++;
-    if (++seen >= 50_000) break;
-  }
-  return hit / seen;
-}
 
 const isBlank = (v: unknown) => v === null || v === undefined || (typeof v === "string" && v.trim() === "");
 
-/** Full-file distinct values when the loader tracked them, else the sample's. */
-function distinctValues(table: WsTable, column: string): Set<string> {
-  const full = table.keySets?.[column];
-  if (full) return full;
-  const s = new Set<string>();
-  for (const r of table.rows) {
-    const v = r[column];
-    if (!isBlank(v)) s.add(keyOf(v));
-  }
-  return s;
+/** Full-file distinct value hashes when the loader tracked them, else the sample's (cached). */
+function distinctHashes(table: WsTable, column: string): Float64Array {
+  return table.keyHashes?.[column] ?? hashesFromRows(table.rows, column);
 }
 
 /** Non-null and unique: across the whole file when stats exist, else the sample. */
@@ -93,7 +75,7 @@ export function detectRelations(ws: Workspace): Relation[] {
     if (!pk) continue;
     const pkField = target.fields.find((f) => f.name === pk);
     if (!pkField) continue;
-    const pkValues = distinctValues(target, pk);
+    const pkValues = distinctHashes(target, pk);
 
     for (const source of ws.tables) {
       for (const f of source.fields) {
@@ -101,7 +83,7 @@ export function detectRelations(ws: Workspace): Relation[] {
         if (!keyable(f) || !sameFamily(f, pkField)) continue;
         if (!nameMatches(f.name, target, pk)) continue;
 
-        const overlap = overlapOf(distinctValues(source, f.name), pkValues);
+        const overlap = overlapSorted(distinctHashes(source, f.name), pkValues);
         if (overlap !== null && overlap < 0.3) continue; // names match but values don't: probably a coincidence
         const from = { table: source.id, column: f.name };
         const to = { table: target.id, column: pk };
@@ -142,7 +124,7 @@ export function activeRelations(ws: Workspace): Relation[] {
 export function measureRelation(ws: Workspace, from: { table: string; column: string }, to: { table: string; column: string }): Relation {
   const a = ws.tables.find((t) => t.id === from.table)!;
   const b = ws.tables.find((t) => t.id === to.table)!;
-  const overlap = overlapOf(distinctValues(a, from.column), distinctValues(b, to.column));
+  const overlap = overlapSorted(distinctHashes(a, from.column), distinctHashes(b, to.column));
   return {
     id: relationId(from, to),
     from,

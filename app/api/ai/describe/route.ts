@@ -1,29 +1,13 @@
 import { z } from "zod";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
-import { DESCRIBE_SYSTEM, schemaToPrompt } from "@/lib/ai/prompts";
+import { DESCRIBE_SYSTEM } from "@/lib/ai/prompts";
 import { describeError, FALLBACK_PARAMS, getClient } from "@/lib/ai/client";
+import { Descriptions, describePrompt, type DescribeResponse } from "@/lib/ai/shared";
 import { ollamaChat } from "@/lib/ai/ollama";
 import { NO_PROVIDER_MESSAGE, resolveProvider } from "@/lib/ai/provider";
-import { TableSchemaSchema, type Field } from "@/lib/schema/types";
+import { TableSchemaSchema } from "@/lib/schema/types";
 
-const Descriptions = z.object({
-  columns: z.array(
-    z.object({
-      path: z.string().describe("Column path, e.g. 'amount' or 'shipping.city'"),
-      description: z.string(),
-      pii: z.boolean(),
-    }),
-  ),
-});
-
-export type DescribeResponse = z.infer<typeof Descriptions>;
-
-function paths(fields: Field[], prefix = ""): string[] {
-  return fields.flatMap((f) => {
-    const p = prefix + f.name;
-    return f.fields?.length ? [p, ...paths(f.fields, `${p}.`)] : [p];
-  });
-}
+export type { DescribeResponse };
 
 export async function POST(request: Request) {
   const provider = await resolveProvider();
@@ -34,7 +18,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "Invalid schema in request." }, { status: 400 });
   }
   const schema = parsed.data;
-  const prompt = `${schemaToPrompt(schema)}\n\nDescribe these column paths:\n${paths(schema.fields).join("\n")}`;
+  const prompt = describePrompt(schema);
 
   if (provider.kind === "ollama") {
     try {

@@ -19,9 +19,9 @@ export function loadFileInWorker(
   name: string,
   onProgress: (p: LoadProgress) => void,
   signal?: AbortSignal,
-): Promise<WsTable> {
+): Promise<{ table: WsTable; saved: boolean }> {
   if (typeof Worker === "undefined") {
-    return file.text().then((text) => ({ ...loadTable(text, file.name), name }));
+    return file.text().then((text) => ({ table: { ...loadTable(text, file.name), name }, saved: false }));
   }
   return new Promise((resolve, reject) => {
     const worker = new Worker(new URL("./worker.ts", import.meta.url), { type: "module" });
@@ -36,7 +36,7 @@ export function loadFileInWorker(
       else {
         signal?.removeEventListener("abort", stop);
         worker.terminate();
-        if (msg.type === "done") resolve(msg.table);
+        if (msg.type === "done") resolve({ table: msg.table, saved: msg.saved });
         else reject(new Error(msg.message));
       }
     };
@@ -47,4 +47,25 @@ export function loadFileInWorker(
     };
     worker.postMessage({ file, name });
   });
+}
+
+/** Workers to run at once: enough to use the cores, few enough not to exhaust memory with many big files. */
+export const maxParallel = () => Math.min(4, Math.max(1, (navigator.hardwareConcurrency || 2) - 1));
+
+/** Run async jobs with at most `limit` in flight, in order. */
+export async function runLimited<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<PromiseSettledResult<R>[]> {
+  const results: PromiseSettledResult<R>[] = new Array(items.length);
+  let next = 0;
+  const lane = async () => {
+    while (next < items.length) {
+      const i = next++;
+      try {
+        results[i] = { status: "fulfilled", value: await fn(items[i]) };
+      } catch (reason) {
+        results[i] = { status: "rejected", reason };
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, lane));
+  return results;
 }
