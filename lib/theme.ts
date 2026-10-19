@@ -12,21 +12,7 @@ function subscribe(cb: () => void) {
   // the attribute is the single source of truth; watch it
   const mo = new MutationObserver(cb);
   mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
-  // follow the OS while the user hasn't picked a theme
-  const mql = matchMedia("(prefers-color-scheme: dark)");
-  const onSystem = () => {
-    try {
-      if (localStorage.getItem(THEME_KEY)) return;
-    } catch {
-      /* storage blocked: follow the OS */
-    }
-    document.documentElement.setAttribute("data-theme", mql.matches ? "dark" : "light");
-  };
-  mql.addEventListener("change", onSystem);
-  return () => {
-    mo.disconnect();
-    mql.removeEventListener("change", onSystem);
-  };
+  return () => mo.disconnect();
 }
 
 export function useTheme(): Theme {

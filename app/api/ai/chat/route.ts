@@ -1,7 +1,6 @@
 import { z } from "zod";
-import type Anthropic from "@anthropic-ai/sdk";
-import { CHAT_SYSTEM, schemaToPrompt } from "@/lib/ai/prompts";
-import { describeError, FALLBACK_PARAMS, getClient } from "@/lib/ai/client";
+import { describeError, getClient } from "@/lib/ai/client";
+import { claudeChatParams, plainSystem } from "@/lib/ai/shared";
 import { ollamaStream } from "@/lib/ai/ollama";
 import { NO_PROVIDER_MESSAGE, resolveProvider } from "@/lib/ai/provider";
 import { TableSchemaSchema } from "@/lib/schema/types";
@@ -43,34 +42,17 @@ export async function POST(request: Request) {
     return Response.json({ error: "Invalid chat request." }, { status: 400 });
   }
   const { messages, schema } = parsed.data;
-  const context = schema ? `The table you are working on:\n\n${schemaToPrompt(schema)}` : null;
 
   if (provider.kind === "ollama") {
-    const system = [CHAT_SYSTEM, context].filter(Boolean).join("\n\n");
     return streamText(
-      (signal) => ollamaStream(provider.model, [{ role: "system", content: system }, ...messages], signal),
+      (signal) => ollamaStream(provider.model, [{ role: "system", content: plainSystem(schema) }, ...messages], signal),
       (e) => `Local model error: ${(e as Error).message}`,
     );
   }
 
-  // The table context goes in the system prompt so it is stable across turns (cache-friendly).
-  const system: Anthropic.Beta.BetaTextBlockParam[] = [{ type: "text", text: CHAT_SYSTEM }];
-  if (context) system.push({ type: "text", text: context });
-
   return streamText(
     async function* (signal) {
-      const stream = getClient().beta.messages.stream(
-        {
-          model: provider.model,
-          max_tokens: 64000,
-          ...FALLBACK_PARAMS,
-          output_config: { effort: "medium" },
-          cache_control: { type: "ephemeral" },
-          system,
-          messages,
-        },
-        { signal },
-      );
+      const stream = getClient().beta.messages.stream(claudeChatParams(provider.model, messages, schema), { signal });
       for await (const event of stream) {
         if (event.type === "content_block_delta" && event.delta.type === "text_delta") yield event.delta.text;
       }

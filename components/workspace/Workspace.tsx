@@ -1,13 +1,14 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { loadFileInWorker, type LoadProgress } from "@/lib/workspace/loader";
+import { loadFileInWorker, maxParallel, runLimited, type LoadProgress } from "@/lib/workspace/loader";
 import { tableNameFromFile, uniqueName } from "@/lib/workspace/load";
-import { useWorkspace } from "@/lib/store";
+import { markSaved, useWorkspace } from "@/lib/store";
 import { loadTable } from "@/lib/workspace/load";
 import { DEMO_FILES } from "@/lib/workspace/demo";
 import { activeRelations, primaryKeys } from "@/lib/workspace/model";
 import { dbml, mermaid, modelDdl } from "@/lib/workspace/exports";
+import { dataDictionary, dbtProject } from "@/lib/workspace/docs";
 import { EMPTY_WORKSPACE, type WsTable } from "@/lib/workspace/types";
 import { DIALECTS, type SqlDialect } from "@/lib/templates";
 import { CodeView } from "../CodeView";
@@ -19,7 +20,7 @@ import { ErDiagram } from "./ErDiagram";
 import { JoinBuilder } from "./JoinBuilder";
 
 type Tab = "tables" | "relations" | "erd" | "joins" | "export";
-type ExportKind = "ddl" | "mermaid" | "dbml";
+type ExportKind = "ddl" | "mermaid" | "dbml" | "dbt" | "dictionary";
 
 interface Pending {
   key: string;
@@ -57,7 +58,10 @@ export function Workspace() {
     setWs({ ...EMPTY_WORKSPACE, dataset: ws.dataset, tables });
   }
 
-  /** Stream every file through its own worker in parallel; the page stays responsive. */
+  /**
+   * Stream files through background workers (a few at a time), adding each
+   * table to the model the moment it's ready instead of waiting for the slowest.
+   */
   async function readFiles(list: FileList | File[]) {
     const files = [...list];
     const controller = new AbortController();
@@ -71,27 +75,43 @@ export function Workspace() {
     setErrors([]);
     setPending(jobs.map((j) => ({ key: j.key, file: j.file.name, progress: { bytes: 0, total: j.file.size, rows: 0 } })));
 
-    const results = await Promise.allSettled(
-      jobs.map((j) =>
-        loadFileInWorker(
+    const results = await runLimited(jobs, maxParallel(), async (j) => {
+      if (controller.signal.aborted) throw new DOMException("Cancelled", "AbortError");
+      try {
+        const { table, saved } = await loadFileInWorker(
           j.file,
           j.name,
           (progress) => setPending((p) => p.map((x) => (x.key === j.key ? { ...x, progress } : x))),
           controller.signal,
-        ),
-      ),
-    );
+        );
+        if (saved) markSaved(table);
+        setWs((cur) => ({ ...cur, tables: [...cur.tables, table] }));
+      } finally {
+        setPending((p) => p.filter((x) => x.key !== j.key));
+      }
+    });
     setPending([]);
     abortRef.current = null;
     if (controller.signal.aborted) return;
-    const added = results.flatMap((r) => (r.status === "fulfilled" ? [r.value] : []));
     setErrors(results.flatMap((r) => (r.status === "rejected" ? [(r.reason as Error).message] : [])));
-    if (added.length) setWs({ ...ws, tables: [...ws.tables, ...added] });
   }
 
-  const exportCode =
-    exportKind === "ddl" ? modelDdl(ws, pks, relations, dialect) : exportKind === "mermaid" ? mermaid(ws, pks, relations) : dbml(ws, pks, relations);
-  const exportFile = exportKind === "ddl" ? `data_model.${dialect}.sql` : exportKind === "mermaid" ? "data_model.mmd" : "data_model.dbml";
+  // generated only while the Export tab is open
+  const exportCode = useMemo(() => {
+    if (tab !== "export") return "";
+    if (exportKind === "ddl") return modelDdl(ws, pks, relations, dialect);
+    if (exportKind === "mermaid") return mermaid(ws, pks, relations);
+    if (exportKind === "dbml") return dbml(ws, pks, relations);
+    if (exportKind === "dbt") return dbtProject(ws, pks, relations);
+    return dataDictionary(ws, pks, relations);
+  }, [tab, exportKind, ws, pks, relations, dialect]);
+  const exportFile = {
+    ddl: `data_model.${dialect}.sql`,
+    mermaid: "data_model.mmd",
+    dbml: "data_model.dbml",
+    dbt: "dbt_models.yml",
+    dictionary: "data_dictionary.md",
+  }[exportKind];
 
   return (
     <div className="space-y-6">
@@ -234,6 +254,8 @@ export function Workspace() {
                       ["ddl", "Model DDL"],
                       ["mermaid", "Mermaid"],
                       ["dbml", "DBML"],
+                      ["dbt", "dbt sources + tests"],
+                      ["dictionary", "Data dictionary"],
                     ] as const
                   ).map(([id, label]) => (
                     <button
@@ -261,6 +283,8 @@ export function Workspace() {
                   {exportKind === "ddl" && "CREATE TABLE statements for the whole model, with primary and foreign keys, in dependency order."}
                   {exportKind === "mermaid" && "Paste into a GitHub/GitLab markdown ```mermaid block or Notion to render the diagram."}
                   {exportKind === "dbml" && "Paste into dbdiagram.io or dbdocs to get an interactive diagram."}
+                  {exportKind === "dbt" && "A dbt sources file with column docs and tests (not_null, unique, relationships, accepted_values) taken from your data, plus a staging model per table."}
+                  {exportKind === "dictionary" && "Markdown docs for every table: columns, types, keys, drafted descriptions, PII flags and profile numbers. Paste into Confluence, Notion or a README."}
                 </p>
                 <CodeView code={exportCode} filename={exportFile} />
               </div>

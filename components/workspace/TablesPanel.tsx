@@ -79,6 +79,7 @@ function TableDetail({
   onOpenInBuilder: () => void;
 }) {
   const profile = useMemo(() => profileTable(table), [table]);
+  const sample = table.sampleCount ?? table.rows.length;
 
   return (
     <div className="animate-fade-in">
@@ -116,8 +117,8 @@ function TableDetail({
 
       <p className="label mb-3 text-muted">
         {table.stats
-          ? `Counts, nulls and min/max over all ${table.rowCount.toLocaleString()} rows · top values from ${table.rows.length < table.rowCount ? `a ${table.rows.length.toLocaleString()}-row sample` : "every row"}`
-          : `Profile of ${table.rows.length.toLocaleString()} rows`}
+          ? `Counts, nulls and min/max over all ${table.rowCount.toLocaleString()} rows · top values from ${sample < table.rowCount ? `a ${sample.toLocaleString()}-row sample` : "every row"}`
+          : `Profile of ${sample.toLocaleString()} rows`}
         {table.source ? ` · ${table.source}` : ""}
       </p>
       <div className="overflow-x-auto">

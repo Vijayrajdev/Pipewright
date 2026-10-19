@@ -1,13 +1,14 @@
 import { inferFields } from "@/lib/schema/infer";
 import { dedupeNames, toSnakeCase } from "@/lib/schema/normalize";
 import { rng } from "@/lib/mock";
-import { keyOf } from "./profile";
+import { keyOf, sampleSummary } from "./profile";
+import { hash53, sortedHashes } from "./keys";
 import type { ColumnStats, Row, WsTable } from "./types";
 
 /** rows kept in memory per table: every row for small files, a uniform sample beyond that */
 export const SAMPLE_ROWS = 20_000;
-/** distinct values tracked per key-like column before giving up on exactness */
-export const KEY_CAP = 500_000;
+/** distinct values tracked per key-like column before giving up on exactness (hashes are 8 bytes each) */
+export const KEY_CAP = 1_000_000;
 
 const KEY_LIKE = /(^id$|_id$|_key$|_code$|_uuid$|^uuid$|^sku$|^code$|^key$)/;
 const isBlank = (v: unknown) => v === null || v === undefined || (typeof v === "string" && v.trim() === "");
@@ -20,7 +21,7 @@ interface Acc {
   numSum: number;
   strMin?: string;
   strMax?: string;
-  keys?: Set<string>;
+  keys?: Set<number>;
   dup: boolean;
   capped: boolean;
 }
@@ -100,7 +101,7 @@ export class TableBuilder {
         if (a.strMax === undefined || s > a.strMax) a.strMax = s;
       }
       if (a.keys && !a.capped) {
-        const k = keyOf(v);
+        const k = hash53(keyOf(v));
         if (a.keys.has(k)) a.dup = true;
         else if (a.keys.size >= this.keyCap) a.capped = true;
         else a.keys.add(k);
@@ -111,12 +112,14 @@ export class TableBuilder {
   finish(): WsTable {
     const fields = inferFields(this.sample, { snakeCase: false });
     const stats: Record<string, ColumnStats> = {};
-    const keySets: Record<string, Set<string>> = {};
+    const keyHashes: Record<string, Float64Array> = {};
+    // top values and sample distinct counts, so the profile never rescans rows on the page
+    const summary = sampleSummary(this.sample, fields);
     for (const f of fields) {
       const a = this.acc.get(f.name);
       if (!a) continue;
       const numeric = f.type === "int" || f.type === "float" || f.type === "decimal";
-      const s: ColumnStats = { nonNull: a.nonNull, nulls: this.count - a.nonNull };
+      const s: ColumnStats = { nonNull: a.nonNull, nulls: this.count - a.nonNull, ...summary[f.name] };
       if (numeric && a.numCount) {
         s.min = String(a.numMin);
         s.max = String(a.numMax);
@@ -130,7 +133,7 @@ export class TableBuilder {
         s.unique = !a.dup && s.nulls === 0 && a.nonNull > 0;
         if (a.capped) s.capped = true;
         // only keep sets that could be keys or point at keys
-        if (KEY_LIKE.test(f.name) || s.unique) keySets[f.name] = a.keys;
+        if (KEY_LIKE.test(f.name) || s.unique) keyHashes[f.name] = sortedHashes(a.keys);
       }
       stats[f.name] = s;
     }
@@ -140,9 +143,10 @@ export class TableBuilder {
       fields,
       rows: this.sample,
       rowCount: this.count,
+      sampleCount: this.sample.length,
       source: this.source,
       stats,
-      keySets,
+      keyHashes,
     };
   }
 }

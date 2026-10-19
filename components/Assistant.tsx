@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useCurrentSchema } from "@/lib/store";
-import { useAiStatus } from "@/lib/useAiStatus";
+import { engineBadge, useAi } from "@/lib/ai/useAi";
+import { openAiSettings } from "@/lib/ai/settings";
+import { chatPrompt } from "@/lib/ai/shared";
 import { MessageBody } from "./MessageBody";
 import { LogoMark } from "./Logo";
 import { Button, Notice } from "./ui";
@@ -23,7 +25,8 @@ const STARTERS = [
 
 export function Assistant() {
   const [schema] = useCurrentSchema();
-  const ai = useAiStatus();
+  const { engine, loading } = useAi();
+  const [copied, setCopied] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -45,23 +48,10 @@ export function Assistant() {
     const controller = new AbortController();
     abortRef.current = controller;
     try {
-      const res = await fetch("/api/ai/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: history, schema }),
-        signal: controller.signal,
-      });
-      if (!res.ok || !res.body) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error ?? `Request failed (${res.status})`);
-      }
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
+      if (!engine) throw new Error("No AI is set up. Open AI settings, or use Copy prompt to ask any AI you already use.");
       let answer = "";
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        answer += decoder.decode(value, { stream: true });
+      for await (const chunk of engine.chat(history, schema, controller.signal)) {
+        answer += chunk;
         setMessages([...history, { role: "assistant", content: answer }]);
       }
     } catch (err) {
@@ -72,6 +62,14 @@ export function Assistant() {
       setBusy(false);
       abortRef.current = null;
     }
+  }
+
+  /** Everything an outside AI needs (instructions, table, conversation, question) in one block. */
+  async function copyPrompt() {
+    const question = input.trim() || "Help me with this table.";
+    await navigator.clipboard.writeText(chatPrompt([...messages, { role: "user", content: question }], schema));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
   }
 
   return (
@@ -87,11 +85,10 @@ export function Assistant() {
             No table loaded. <Link href="/schema" className="text-ink underline">Build one</Link> to give Pipewright context.
           </span>
         )}
-        {ai.enabled && (
-          <span className="label border border-line px-2.5 py-1 text-muted">
-            {ai.provider === "ollama" ? `${ai.model} · local · free` : `${ai.model} · Claude`}
-          </span>
-        )}
+        <button onClick={openAiSettings} className="label flex items-center gap-2 border border-line px-2.5 py-1 text-muted transition-colors hover:border-ink hover:text-ink">
+          <span className={`h-1.5 w-1.5 rounded-full ${engine ? (engine.onDevice ? "bg-ink" : "bg-coral") : "bg-line"}`} />
+          {engine ? engineBadge(engine) : loading ? "Checking AI…" : "AI off"} · settings
+        </button>
         {messages.length > 0 && (
           <button onClick={() => setMessages([])} disabled={busy} className="ml-auto text-xs text-muted hover:text-ink">
             Clear chat
@@ -99,13 +96,13 @@ export function Assistant() {
         )}
       </div>
 
-      {!ai.loading && !ai.enabled && (
+      {!loading && !engine && (
         <div className="mb-4">
           <Notice>
-            AI is off. For a free local model, install <a href="https://ollama.com" target="_blank" rel="noreferrer" className="underline">Ollama</a> and run{" "}
-            <code className="font-mono">ollama pull llama3.2</code>, then reload. Or add <code className="font-mono">ANTHROPIC_API_KEY</code> to{" "}
-            <code className="font-mono">.env.local</code>. For common tasks (dedupe, MERGE, SCD2, data checks, dbt tests),{" "}
-            <Link href="/templates" className="underline">SQL Templates</Link> works without a key.
+            No AI is set up yet. <button onClick={openAiSettings} className="font-semibold underline">Open AI settings</button> to add your own key (Claude, GPT, Gemini and more),
+            run a free model in your browser or on your computer, or skip AI entirely: type a question and use <b>Copy prompt</b> to take it,
+            with your table&apos;s context, to any AI chat you already use. For common tasks,{" "}
+            <Link href="/templates" className="underline">SQL Templates</Link> needs no AI at all.
           </Notice>
         </div>
       )}
@@ -116,8 +113,7 @@ export function Assistant() {
             {STARTERS.map((s) => (
               <button
                 key={s}
-                onClick={() => send(s)}
-                disabled={!ai.enabled}
+                onClick={() => (engine ? send(s) : setInput(s))}
                 className="rounded-lg border border-line bg-paper p-3 text-left text-sm text-text transition-colors hover:border-coral disabled:opacity-50"
               >
                 {s}
@@ -169,8 +165,7 @@ export function Assistant() {
             }
           }}
           rows={2}
-          placeholder={ai.enabled ? "Ask for SQL, a merge, a DAG, tests… (Enter to send)" : "AI is off"}
-          disabled={!ai.enabled}
+          placeholder={engine ? "Ask for SQL, a merge, a DAG, tests… (Enter to send)" : "Type a question, then Copy prompt to use it in any AI chat"}
           className="flex-1 resize-none rounded-lg border border-line bg-paper px-3 py-2 text-sm focus:border-ink focus:outline-none"
         />
         {busy ? (
@@ -178,9 +173,14 @@ export function Assistant() {
             Stop
           </Button>
         ) : (
-          <Button type="submit" variant="accent" disabled={!ai.enabled || !input.trim()}>
-            Send
-          </Button>
+          <div className="flex flex-col gap-2">
+            <Button type="submit" variant="accent" disabled={!engine || !input.trim()}>
+              Send
+            </Button>
+            <Button type="button" variant="ghost" onClick={copyPrompt} title="Copy this question with your table's context, to paste into any AI chat">
+              {copied ? "Copied ✓" : "Copy prompt"}
+            </Button>
+          </div>
         )}
       </form>
     </div>

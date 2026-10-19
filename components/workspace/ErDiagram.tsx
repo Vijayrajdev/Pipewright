@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { memo, useCallback, useMemo, useRef, useState } from "react";
 import type { Relation, Workspace, WsTable } from "@/lib/workspace/types";
 import { Button } from "../ui";
 
@@ -81,19 +81,41 @@ export function ErDiagram({ ws, pks, relations, onPositions }: Props) {
     { w: 600, h: 320 },
   );
 
-  const fks = new Set(relations.map((r) => `${r.from.table}.${r.from.column}`));
+  // per-table FK columns as one string (a stable prop for the memoised nodes) and hover neighbours
+  const { fkCols, neighbors } = useMemo(() => {
+    const cols = new Map<string, string[]>();
+    const near = new Map<string, Set<string>>();
+    for (const r of relations) {
+      cols.set(r.from.table, [...(cols.get(r.from.table) ?? []), r.from.column]);
+      for (const [a, b] of [[r.from.table, r.to.table], [r.to.table, r.from.table]]) {
+        if (!near.has(a)) near.set(a, new Set());
+        near.get(a)!.add(b);
+      }
+    }
+    return { fkCols: new Map([...cols].map(([k, v]) => [k, v.join(",")])), neighbors: near };
+  }, [relations]);
+  const byId = useMemo(() => new Map(ws.tables.map((t) => [t.id, t])), [ws.tables]);
   const rowY = (t: WsTable, col: string) => {
     const i = t.fields.findIndex((f) => f.name === col);
     return pos(t.id).y + HEAD + (i < 0 ? 0 : i) * ROW + ROW / 2 + 4;
   };
 
-  function toSvg(e: React.PointerEvent) {
+  const toSvg = useCallback((e: React.PointerEvent) => {
     const svg = svgRef.current!;
     const pt = svg.createSVGPoint();
     pt.x = e.clientX;
     pt.y = e.clientY;
     return pt.matrixTransform(svg.getScreenCTM()!.inverse());
-  }
+  }, []);
+
+  const startDrag = useCallback(
+    (id: string, x: number, y: number, e: React.PointerEvent) => {
+      const pt = toSvg(e);
+      (e.target as Element).setPointerCapture?.(e.pointerId);
+      setDrag({ id, dx: pt.x - x, dy: pt.y - y });
+    },
+    [toSvg],
+  );
 
   function exportSvg() {
     let src = new XMLSerializer().serializeToString(svgRef.current!);
@@ -160,8 +182,8 @@ export function ErDiagram({ ws, pks, relations, onPositions }: Props) {
 
           {/* relationships */}
           {relations.map((r, i) => {
-            const a = ws.tables.find((t) => t.id === r.from.table);
-            const b = ws.tables.find((t) => t.id === r.to.table);
+            const a = byId.get(r.from.table);
+            const b = byId.get(r.to.table);
             if (!a || !b) return null;
             const pa = pos(a.id);
             const pb = pos(b.id);
@@ -193,62 +215,24 @@ export function ErDiagram({ ws, pks, relations, onPositions }: Props) {
             );
           })}
 
-          {/* tables */}
+          {/* tables: memoised, so dragging one only re-renders that one */}
           {ws.tables.map((t, ti) => {
             const p = pos(t.id);
-            const dim = hover && hover !== t.id && !relations.some((r) => (r.from.table === hover && r.to.table === t.id) || (r.to.table === hover && r.from.table === t.id));
             return (
-              <g key={t.id} transform={`translate(${p.x},${p.y})`} opacity={dim ? 0.35 : 1} style={{ transition: "opacity .3s" }}>
-                <g
-                  className="origin-center animate-pop transform-fill"
-                  style={{ animationDelay: `${ti * 90}ms` }}
-                  onPointerEnter={() => setHover(t.id)}
-                  onPointerLeave={() => setHover(null)}
-                >
-                  <rect width={W} height={height(t)} fill="var(--color-paper)" stroke={hover === t.id ? "var(--color-coral)" : "var(--color-line)"} strokeWidth={hover === t.id ? 2 : 1} />
-                  {/* header = drag handle */}
-                  <rect
-                    width={W}
-                    height={HEAD}
-                    fill="var(--color-ink)"
-                    style={{ cursor: drag?.id === t.id ? "grabbing" : "grab" }}
-                    onPointerDown={(e) => {
-                      const pt = toSvg(e);
-                      (e.target as Element).setPointerCapture?.(e.pointerId);
-                      setDrag({ id: t.id, dx: pt.x - p.x, dy: pt.y - p.y });
-                    }}
-                  />
-                  <text x={12} y={24} fill="var(--color-ivory)" fontFamily="Archivo, sans-serif" fontWeight="800" fontSize="13" letterSpacing="0.06em" style={{ pointerEvents: "none", textTransform: "uppercase" }}>
-                    {t.name}
-                  </text>
-                  <text x={W - 12} y={24} textAnchor="end" fill="var(--color-coral)" fontFamily="Archivo, sans-serif" fontSize="10" style={{ pointerEvents: "none" }}>
-                    {t.rowCount.toLocaleString()} rows
-                  </text>
-                  {t.fields.map((f, i) => {
-                    const y = HEAD + i * ROW + 4;
-                    const isPk = pks[t.id] === f.name;
-                    const isFk = fks.has(`${t.id}.${f.name}`);
-                    return (
-                      <g key={f.name}>
-                        {i % 2 === 1 && <rect x={1} y={y} width={W - 2} height={ROW} fill="var(--color-ivory)" opacity="0.5" />}
-                        {(isPk || isFk) && (
-                          <text x={12} y={y + 16} fontFamily="JetBrains Mono, monospace" fontSize="9" fontWeight="700" fill={isPk ? "var(--color-coral-deep)" : "var(--color-ink)"}>
-                            {isPk ? "PK" : "FK"}
-                          </text>
-                        )}
-                        <text x={36} y={y + 16} fontFamily="JetBrains Mono, monospace" fontSize="11.5" fill="var(--color-text)" fontWeight={isPk ? 700 : 400}>
-                          {f.name}
-                        </text>
-                        <text x={W - 12} y={y + 16} textAnchor="end" fontFamily="JetBrains Mono, monospace" fontSize="10.5" fill="var(--color-muted)">
-                          {f.type}
-                          {f.repeated ? "[]" : ""}
-                          {f.nullable ? "" : " !"}
-                        </text>
-                      </g>
-                    );
-                  })}
-                </g>
-              </g>
+              <TableNode
+                key={t.id}
+                table={t}
+                index={ti}
+                x={p.x}
+                y={p.y}
+                pk={pks[t.id] ?? null}
+                fkCols={fkCols.get(t.id) ?? ""}
+                hovered={hover === t.id}
+                dim={!!hover && hover !== t.id && !neighbors.get(hover)?.has(t.id)}
+                grabbing={drag?.id === t.id}
+                onHover={setHover}
+                onGrab={startDrag}
+              />
             );
           })}
         </svg>
@@ -256,3 +240,65 @@ export function ErDiagram({ ws, pks, relations, onPositions }: Props) {
     </div>
   );
 }
+
+interface NodeProps {
+  table: WsTable;
+  index: number;
+  x: number;
+  y: number;
+  pk: string | null;
+  /** comma-joined FK column names */
+  fkCols: string;
+  hovered: boolean;
+  dim: boolean;
+  grabbing: boolean;
+  onHover: (id: string | null) => void;
+  onGrab: (id: string, x: number, y: number, e: React.PointerEvent) => void;
+}
+
+const TableNode = memo(function TableNode({ table: t, index, x, y, pk, fkCols, hovered, dim, grabbing, onHover, onGrab }: NodeProps) {
+  const fks = new Set(fkCols.split(","));
+  return (
+    <g transform={`translate(${x},${y})`} opacity={dim ? 0.35 : 1} style={{ transition: "opacity .3s" }}>
+      <g
+        className="origin-center animate-pop transform-fill"
+        style={{ animationDelay: `${index * 90}ms` }}
+        onPointerEnter={() => onHover(t.id)}
+        onPointerLeave={() => onHover(null)}
+      >
+        <rect width={W} height={height(t)} fill="var(--color-paper)" stroke={hovered ? "var(--color-coral)" : "var(--color-line)"} strokeWidth={hovered ? 2 : 1} />
+        {/* header = drag handle */}
+        <rect width={W} height={HEAD} fill="var(--color-ink)" style={{ cursor: grabbing ? "grabbing" : "grab" }} onPointerDown={(e) => onGrab(t.id, x, y, e)} />
+        <text x={12} y={24} fill="var(--color-ivory)" fontFamily="Archivo, sans-serif" fontWeight="800" fontSize="13" letterSpacing="0.06em" style={{ pointerEvents: "none", textTransform: "uppercase" }}>
+          {t.name}
+        </text>
+        <text x={W - 12} y={24} textAnchor="end" fill="var(--color-coral)" fontFamily="Archivo, sans-serif" fontSize="10" style={{ pointerEvents: "none" }}>
+          {t.rowCount.toLocaleString()} rows
+        </text>
+        {t.fields.map((f, i) => {
+          const fy = HEAD + i * ROW + 4;
+          const isPk = pk === f.name;
+          const isFk = fks.has(f.name);
+          return (
+            <g key={f.name}>
+              {i % 2 === 1 && <rect x={1} y={fy} width={W - 2} height={ROW} fill="var(--color-ivory)" opacity="0.5" />}
+              {(isPk || isFk) && (
+                <text x={12} y={fy + 16} fontFamily="JetBrains Mono, monospace" fontSize="9" fontWeight="700" fill={isPk ? "var(--color-coral-deep)" : "var(--color-ink)"}>
+                  {isPk ? "PK" : "FK"}
+                </text>
+              )}
+              <text x={36} y={fy + 16} fontFamily="JetBrains Mono, monospace" fontSize="11.5" fill="var(--color-text)" fontWeight={isPk ? 700 : 400}>
+                {f.name}
+              </text>
+              <text x={W - 12} y={fy + 16} textAnchor="end" fontFamily="JetBrains Mono, monospace" fontSize="10.5" fill="var(--color-muted)">
+                {f.type}
+                {f.repeated ? "[]" : ""}
+                {f.nullable ? "" : " !"}
+              </text>
+            </g>
+          );
+        })}
+      </g>
+    </g>
+  );
+});

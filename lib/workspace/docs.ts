@@ -1,0 +1,144 @@
+import { describeColumn, entityName } from "@/lib/rules/describe";
+import { looksLikePii } from "@/lib/rules/pii";
+import type { Field } from "@/lib/schema/types";
+import type { Relation, Workspace, WsTable } from "./types";
+
+/*
+ * Model-level docs: a dbt sources file whose tests come from what the data
+ * actually shows, staging models, and a Markdown data dictionary.
+ */
+
+type Pks = Record<string, string | null>;
+
+const yamlStr = (s: string) => (/^[\w .,()/-]*$/.test(s) && !/^\s|\s$/.test(s) && s !== "" ? s : JSON.stringify(s));
+const describe = (t: WsTable, f: Field) => f.description ?? describeColumn(f, entityName(t.name)) ?? "";
+const sourceName = (ws: Workspace) => ws.dataset || "raw";
+
+/** dbt's cross-database type macros, so the staging models run on any warehouse. */
+function dbtCast(f: Field, col: string): string {
+  if (f.repeated || f.type === "record" || f.type === "json") return col;
+  const macro = {
+    string: "dbt.type_string()",
+    int: "dbt.type_int()",
+    float: "dbt.type_float()",
+    decimal: "dbt.type_numeric()",
+    bool: "dbt.type_boolean()",
+    timestamp: "dbt.type_timestamp()",
+  }[f.type as string];
+  if (macro) return `cast(${col} as {{ ${macro} }})`;
+  if (f.type === "date") return `cast(${col} as date)`;
+  return col;
+}
+
+/** Column tests backed by the data: not_null, unique, relationships, accepted_values. */
+function columnTests(ws: Workspace, t: WsTable, f: Field, pks: Pks, relations: Relation[]): string[] {
+  const s = t.stats?.[f.name];
+  const sampled = (t.sampleCount ?? t.rows.length) < t.rowCount;
+  const tests: string[] = [];
+  const isPk = pks[t.id] === f.name;
+  if (isPk || (s ? s.nulls === 0 && s.nonNull > 0 : !f.nullable)) tests.push("- not_null");
+  if (isPk || s?.unique) tests.push("- unique");
+  for (const r of relations.filter((r) => r.from.table === t.id && r.from.column === f.name)) {
+    const target = ws.tables.find((x) => x.id === r.to.table);
+    if (!target) continue;
+    const lines = ["- relationships:", `    to: source('${sourceName(ws)}', '${target.name}')`, `    field: ${r.to.column}`];
+    // orphans already exist: start as a warning so the first run doesn't fail the build
+    if (r.overlap !== null && r.overlap < 1) lines.push(`    config:`, `      severity: warn  # ${Math.round((1 - r.overlap) * 100)}% orphan keys today`);
+    tests.push(...lines);
+  }
+  if (s?.enumValues?.length && !isPk && f.type === "string") {
+    tests.push("- accepted_values:", `    values: [${s.enumValues.map((v) => JSON.stringify(v)).join(", ")}]`);
+    if (sampled) tests.push("    config:", "      severity: warn  # values seen in a sample; confirm the full list");
+  }
+  return tests;
+}
+
+export function dbtProject(ws: Workspace, pks: Pks, relations: Relation[]): string {
+  const src = sourceName(ws);
+  const out = [
+    "# ── models/staging/_sources.yml ─────────────────────────────",
+    "version: 2",
+    "",
+    "sources:",
+    `  - name: ${src}`,
+    ...(ws.dataset ? [`    schema: ${ws.dataset}`] : []),
+    "    tables:",
+  ];
+  for (const t of ws.tables) {
+    out.push(`      - name: ${t.name}`);
+    out.push(`        description: ${yamlStr(`${entityName(t.name).replaceAll("_", " ")} records, ${t.rowCount.toLocaleString("en-US")} rows at profiling time.`)}`);
+    out.push("        columns:");
+    for (const f of t.fields) {
+      out.push(`          - name: ${f.name}`);
+      const d = describe(t, f);
+      if (d) out.push(`            description: ${yamlStr(d)}`);
+      if (looksLikePii(f.name) || f.pii) out.push("            meta:", "              contains_pii: true");
+      const tests = columnTests(ws, t, f, pks, relations);
+      if (tests.length) out.push("            data_tests:", ...tests.map((l) => `              ${l}`));
+    }
+  }
+
+  for (const t of ws.tables) {
+    const width = Math.max(...t.fields.map((f) => dbtCast(f, f.name).length));
+    out.push(
+      "",
+      `-- ── models/staging/stg_${src}__${t.name}.sql ─────────────────`,
+      "with source as (",
+      `    select * from {{ source('${src}', '${t.name}') }}`,
+      "),",
+      "",
+      "renamed as (",
+      "    select",
+      t.fields.map((f) => `        ${dbtCast(f, f.name).padEnd(width)} as ${f.name}`).join(",\n"),
+      "    from source",
+      ")",
+      "",
+      "select * from renamed",
+    );
+  }
+  return out.join("\n");
+}
+
+const md = (s: string) => s.replaceAll("|", "\\|").replaceAll("\n", " ");
+const anchor = (s: string) => s.toLowerCase().replace(/[^a-z0-9_ -]/g, "").replaceAll(" ", "-");
+
+/** Markdown data dictionary for the whole model. */
+export function dataDictionary(ws: Workspace, pks: Pks, relations: Relation[]): string {
+  const byId = new Map(ws.tables.map((t) => [t.id, t]));
+  const name = (id: string) => byId.get(id)?.name ?? "?";
+  const out = [
+    `# Data dictionary${ws.dataset ? `: \`${ws.dataset}\`` : ""}`,
+    "",
+    `${ws.tables.length} tables · ${relations.length} relationships · generated by Pipewright from the loaded files.`,
+    "",
+    "## Tables",
+    "",
+    ...ws.tables.map((t) => `- [${t.name}](#${anchor(t.name)}) · ${t.rowCount.toLocaleString("en-US")} rows · ${t.fields.length} columns`),
+  ];
+
+  for (const t of ws.tables) {
+    const pk = pks[t.id];
+    const refs = relations.filter((r) => r.from.table === t.id);
+    const refBy = relations.filter((r) => r.to.table === t.id);
+    out.push("", `## ${t.name}`, "");
+    out.push(`- **Rows:** ${t.rowCount.toLocaleString("en-US")}${t.source ? ` (from \`${t.source}\`)` : ""}`);
+    out.push(`- **Primary key:** ${pk ? `\`${pk}\`` : "none detected"}`);
+    if (refs.length) out.push(`- **References:** ${refs.map((r) => `\`${r.from.column}\` → [${name(r.to.table)}](#${anchor(name(r.to.table))}).\`${r.to.column}\``).join(", ")}`);
+    if (refBy.length) out.push(`- **Referenced by:** ${refBy.map((r) => `[${name(r.from.table)}](#${anchor(name(r.from.table))}).\`${r.from.column}\``).join(", ")}`);
+    out.push("", "| Column | Type | Null % | Distinct | Key | Description | Examples |", "|---|---|---:|---:|---|---|---|");
+    for (const f of t.fields) {
+      const s = t.stats?.[f.name];
+      const total = s ? s.nonNull + s.nulls : 0;
+      const nullPct = s && total ? `${Math.round((s.nulls / total) * 100)}%` : "";
+      const distinct = s?.distinct ?? s?.sampleDistinct;
+      const key = [pk === f.name && "PK", refs.some((r) => r.from.column === f.name) && "FK"].filter(Boolean).join(", ");
+      const pii = looksLikePii(f.name) || f.pii;
+      const examples = pii ? "_hidden (PII)_" : (s?.top ?? []).map((v) => `\`${md(v.value.slice(0, 40))}\``).join(" ");
+      const type = `${f.type}${f.repeated ? "[]" : ""}${f.nullable ? "" : " not null"}`;
+      out.push(
+        `| \`${f.name}\` | ${type} | ${nullPct} | ${distinct === undefined ? "" : `${s?.distinct === undefined || s.capped ? "≈" : ""}${distinct.toLocaleString("en-US")}`} | ${key} | ${md(describe(t, f))}${pii ? " ⚠ PII" : ""} | ${examples} |`,
+      );
+    }
+  }
+  return out.join("\n");
+}
