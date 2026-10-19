@@ -90,7 +90,7 @@ export function Hero() {
                   key={s.href}
                   onClick={() => setIndex(i)}
                   aria-label={`Show slide ${i + 1}`}
-                  className={`h-2 w-2 rounded-full transition-all duration-300 ${i === index ? "w-5 bg-coral" : "bg-cream/50 hover:bg-cream"}`}
+                  className={`tap h-2 w-2 rounded-full transition-all duration-300 ${i === index ? "w-5 bg-coral" : "bg-cream/50 hover:bg-cream"}`}
                 />
               ))}
             </div>

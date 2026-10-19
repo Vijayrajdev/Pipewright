@@ -2,7 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 import { flushSync } from "react-dom";
-import { THEME_KEY, type Theme } from "./theme-script";
+import { THEME_COLORS, THEME_KEY, type Theme } from "./theme-script";
 
 export type { Theme };
 
@@ -21,6 +21,7 @@ export function useTheme(): Theme {
 
 function apply(theme: Theme) {
   document.documentElement.setAttribute("data-theme", theme);
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", THEME_COLORS[theme]);
   try {
     localStorage.setItem(THEME_KEY, theme);
   } catch {

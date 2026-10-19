@@ -24,7 +24,7 @@ export function LiveDemo() {
           <span className="h-2.5 w-2.5 rounded-full bg-ink-soft" />
           <span className="ml-3 font-label text-[11px] tracking-wide text-cream/50">orders.schema.json</span>
         </div>
-        <div className="h-[230px] overflow-hidden p-4 font-mono text-[11.5px] leading-relaxed whitespace-pre text-cream sm:text-xs">
+        <div className="h-[230px] overflow-x-auto overflow-y-hidden overscroll-x-contain p-4 font-mono text-[10.5px] leading-relaxed whitespace-pre text-cream [scrollbar-width:thin] sm:text-xs">
           <Typewriter lines={LINES} speed={18} pause={3200} />
         </div>
       </div>

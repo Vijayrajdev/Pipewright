@@ -124,6 +124,7 @@ export function CommandPalette() {
           </svg>
           <input
             autoFocus
+            data-no-ring
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
@@ -139,7 +140,7 @@ export function CommandPalette() {
               } else if (e.key === "Enter") choose(results[active]);
             }}
             placeholder="Jump to a tool, a docs page or an action…"
-            className="font-wide w-full bg-transparent py-4 text-base font-bold text-text placeholder:font-sans placeholder:font-normal placeholder:text-muted focus:outline-none"
+            className="font-wide w-full min-w-0 bg-transparent py-4 text-base font-bold text-text placeholder:font-sans placeholder:font-normal placeholder:text-muted focus:outline-none focus-visible:outline-none"
             aria-controls="palette-results"
             aria-activedescendant={results[active] ? `palette-${active}` : undefined}
           />

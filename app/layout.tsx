@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import { Archivo, Geist, Instrument_Serif, JetBrains_Mono } from "next/font/google";
 import { TopNav } from "@/components/TopNav";
@@ -14,6 +14,11 @@ const archivo = Archivo({ variable: "--font-archivo", subsets: ["latin"], axes: 
 const instrument = Instrument_Serif({ variable: "--font-instrument", subsets: ["latin"], weight: "400", style: ["normal", "italic"] });
 const geist = Geist({ variable: "--font-geist", subsets: ["latin"] });
 const jetbrains = JetBrains_Mono({ variable: "--font-jetbrains", subsets: ["latin"] });
+
+/** The phone browser's bar matches the page (the theme script switches it for dark mode). */
+export const viewport: Viewport = {
+  themeColor: "#eae6de",
+};
 
 export const metadata: Metadata = {
   title: { default: "Pipewright", template: "%s · Pipewright" },

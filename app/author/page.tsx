@@ -86,7 +86,7 @@ export default function AuthorPage() {
       {/* ── story ────────────────────────────────────────── */}
       <section className="mt-24">
         <Reveal>
-          <h2 className="mb-10 text-4xl leading-[0.95] font-black text-ink uppercase md:text-6xl">
+          <h2 className="mb-10 text-[clamp(1.6rem,9.5vw,2.25rem)] leading-[0.95] font-black text-ink uppercase md:text-6xl">
             One <span className="text-outline">trajectory</span>
           </h2>
         </Reveal>
@@ -116,7 +116,7 @@ export default function AuthorPage() {
           <div className="paper-blue grid gap-10 p-8 md:grid-cols-[1.2fr_1fr] md:p-12">
             <div>
               <RuleLabel tone="paper" className="mb-6">Open a channel</RuleLabel>
-              <p className="font-wide text-4xl leading-[0.95] font-black text-cream uppercase md:text-6xl">
+              <p className="font-wide text-[clamp(1.6rem,9vw,2.25rem)] leading-[0.95] font-black text-cream uppercase md:text-6xl">
                 Let&apos;s build
                 <br />
                 <span className="text-outline-paper">something</span>

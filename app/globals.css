@@ -162,6 +162,61 @@ body {
   background-color: var(--color-ivory);
   color: var(--color-text);
   font-family: var(--font-sans);
+  /* decorative bleeds (bouquet, giant type) never cause sideways scrolling; clip keeps sticky headers working */
+  overflow-x: clip;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/*
+ * Grid and flex children may shrink below their content's width, so wide
+ * code blocks and tables scroll inside their own box instead of widening the
+ * page on small screens.
+ */
+.grid > *,
+.flex-1 {
+  min-width: 0;
+}
+
+/*
+ * Touch screens: form fields at 16px or larger, or iOS zooms the page every
+ * time one is tapped. Unlayered, so it wins over the text-sm utilities.
+ */
+@media (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    font-size: max(16px, 1em);
+  }
+}
+
+/*
+ * Touch screens: small controls get an invisible, larger hit area (.tap) and
+ * bigger checkboxes, so they're easy to hit with a finger without changing
+ * the design.
+ */
+@media (pointer: coarse) {
+  .tap {
+    position: relative;
+  }
+  .tap::after {
+    content: "";
+    position: absolute;
+    inset: -10px;
+  }
+  input[type="checkbox"],
+  input[type="radio"] {
+    width: 1.15rem;
+    height: 1.15rem;
+  }
+}
+
+/* comfortable tap highlight on touch screens */
+@media (hover: none) {
+  a,
+  button {
+    -webkit-tap-highlight-color: color-mix(in srgb, var(--color-coral) 25%, transparent);
+  }
 }
 
 /* paper grain over the whole page */
@@ -184,6 +239,10 @@ body::before {
 :focus-visible {
   outline: 2px solid var(--color-coral);
   outline-offset: 3px;
+}
+/* fields that sit in an already-highlighted panel (e.g. the search box) */
+[data-no-ring]:focus-visible {
+  outline: none;
 }
 
 h1, h2, h3 {

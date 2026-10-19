@@ -40,11 +40,11 @@ export function CodeView({ code, filename }: { code: string; filename: string })
         <div className="absolute top-2 right-2 flex gap-1.5">
           <button
             onClick={copy}
-            className="label border border-cream/30 px-2.5 py-1 text-[10px] text-cream transition-colors hover:border-cream hover:bg-cream hover:text-night"
+            className="label border border-cream/30 px-3 py-2 text-[10px] text-cream sm:px-2.5 sm:py-1 transition-colors hover:border-cream hover:bg-cream hover:text-night"
           >
             {copied ? "Copied" : "Copy"}
           </button>
-          <Button variant="accent" className="px-2.5! py-1! text-[10px]" onClick={() => download(filename, code)}>
+          <Button variant="accent" className="px-3! py-2! text-[10px] sm:px-2.5! sm:py-1!" onClick={() => download(filename, code)}>
             Download
           </Button>
         </div>
