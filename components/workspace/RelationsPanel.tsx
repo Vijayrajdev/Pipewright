@@ -69,7 +69,7 @@ export function RelationsPanel({ ws, relations, update }: Props) {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="label text-muted">{r.origin}</span>
-                  <button onClick={() => remove(r)} className="px-1.5 text-muted transition-colors hover:text-coral-deep" aria-label="Remove relationship">
+                  <button onClick={() => remove(r)} className="tap px-1.5 text-muted transition-colors hover:text-coral-deep" aria-label="Remove relationship">
                     ×
                   </button>
                 </div>

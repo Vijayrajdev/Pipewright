@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import type { Relation, Workspace, WsTable } from "@/lib/workspace/types";
 import { Button } from "../ui";
 
@@ -68,7 +68,18 @@ export function ErDiagram({ ws, pks, relations, onPositions }: Props) {
   const [drag, setDrag] = useState<{ id: string; dx: number; dy: number } | null>(null);
   const [live, setLive] = useState<Workspace["positions"]>({});
   const [hover, setHover] = useState<string | null>(null);
-  const [zoom, setZoom] = useState(1);
+  // null = fit the diagram to the box's width (the default, so phones see every table)
+  const [zoomChoice, setZoom] = useState<number | null>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
+  const [boxWidth, setBoxWidth] = useState(0);
+  const hasTables = ws.tables.length > 0;
+  useEffect(() => {
+    const el = boxRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => setBoxWidth(entry.contentRect.width));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [hasTables]);
 
   const fallback = useMemo(() => initialLayout(ws.tables, relations), [ws.tables, relations]);
   const pos = (id: string) => live[id] ?? ws.positions[id] ?? fallback[id] ?? { x: 20, y: 20 };
@@ -80,6 +91,9 @@ export function ErDiagram({ ws, pks, relations, onPositions }: Props) {
     },
     { w: 600, h: 320 },
   );
+
+  const fit = boxWidth ? Math.max(0.35, Math.min(1, (boxWidth - 2) / bounds.w)) : 1;
+  const zoom = zoomChoice ?? fit;
 
   // per-table FK columns as one string (a stable prop for the memoised nodes) and hover neighbours
   const { fkCols, neighbors } = useMemo(() => {
@@ -112,9 +126,11 @@ export function ErDiagram({ ws, pks, relations, onPositions }: Props) {
     (id: string, x: number, y: number, e: React.PointerEvent) => {
       const pt = toSvg(e);
       (e.target as Element).setPointerCapture?.(e.pointerId);
+      // freeze "fit" while dragging, or the zoom would shift as the diagram grows
+      if (zoomChoice === null) setZoom(zoom);
       setDrag({ id, dx: pt.x - x, dy: pt.y - y });
     },
-    [toSvg],
+    [toSvg, zoom, zoomChoice],
   );
 
   function exportSvg() {
@@ -136,8 +152,11 @@ export function ErDiagram({ ws, pks, relations, onPositions }: Props) {
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <Button variant="ghost" onClick={() => setZoom((z) => Math.min(1.6, z + 0.15))} aria-label="Zoom in">＋</Button>
-        <Button variant="ghost" onClick={() => setZoom((z) => Math.max(0.5, z - 0.15))} aria-label="Zoom out">－</Button>
+        <Button variant="ghost" onClick={() => setZoom(Math.min(1.6, zoom + 0.15))} aria-label="Zoom in">＋</Button>
+        <Button variant="ghost" onClick={() => setZoom(Math.max(0.35, zoom - 0.15))} aria-label="Zoom out">－</Button>
+        <Button variant="ghost" onClick={() => setZoom(null)} aria-pressed={zoomChoice === null}>
+          Fit
+        </Button>
         <Button
           variant="ghost"
           onClick={() => {
@@ -148,18 +167,22 @@ export function ErDiagram({ ws, pks, relations, onPositions }: Props) {
           Auto layout
         </Button>
         <Button variant="accent" onClick={exportSvg}>
-          Download SVG
+          <span className="hidden sm:inline">Download</span> SVG
         </Button>
-        <span className="label ml-auto text-muted">Drag a table header to move it · hover to trace keys</span>
+        <span className="label w-full text-muted lg:ml-auto lg:w-auto">
+          <span className="pointer-coarse:hidden">Drag a table header to move it · hover to trace keys</span>
+          <span className="hidden pointer-coarse:inline">Drag a header to move a table · tap a table to trace its keys</span>
+        </span>
       </div>
-      <div className="paper overflow-auto border border-line" style={{ maxHeight: 640 }}>
+      <div ref={boxRef} className="paper overflow-auto overscroll-contain border border-line" style={{ maxHeight: "min(640px, 75vh)" }}>
         <svg
           ref={svgRef}
           xmlns="http://www.w3.org/2000/svg"
           width={bounds.w * zoom}
           height={bounds.h * zoom}
           viewBox={`0 0 ${bounds.w} ${bounds.h}`}
-          className="block touch-none select-none"
+          // fingers pan the box; only table headers (touch-action none) start a drag
+          className="block touch-pan-x touch-pan-y select-none"
           onPointerMove={(e) => {
             if (!drag) return;
             const p = toSvg(e);
@@ -252,7 +275,7 @@ interface NodeProps {
   hovered: boolean;
   dim: boolean;
   grabbing: boolean;
-  onHover: (id: string | null) => void;
+  onHover: Dispatch<SetStateAction<string | null>>;
   onGrab: (id: string, x: number, y: number, e: React.PointerEvent) => void;
 }
 
@@ -263,12 +286,14 @@ const TableNode = memo(function TableNode({ table: t, index, x, y, pk, fkCols, h
       <g
         className="origin-center animate-pop transform-fill"
         style={{ animationDelay: `${index * 90}ms` }}
-        onPointerEnter={() => onHover(t.id)}
-        onPointerLeave={() => onHover(null)}
+        onPointerEnter={(e) => e.pointerType === "mouse" && onHover(t.id)}
+        onPointerLeave={(e) => e.pointerType === "mouse" && onHover(null)}
+        // touch has no hover: a tap highlights this table's keys, another tap clears it
+        onPointerUp={(e) => e.pointerType !== "mouse" && onHover((h) => (h === t.id ? null : t.id))}
       >
         <rect width={W} height={height(t)} fill="var(--color-paper)" stroke={hovered ? "var(--color-coral)" : "var(--color-line)"} strokeWidth={hovered ? 2 : 1} />
         {/* header = drag handle */}
-        <rect width={W} height={HEAD} fill="var(--color-ink)" style={{ cursor: grabbing ? "grabbing" : "grab" }} onPointerDown={(e) => onGrab(t.id, x, y, e)} />
+        <rect width={W} height={HEAD} fill="var(--color-ink)" style={{ cursor: grabbing ? "grabbing" : "grab", touchAction: "none" }} onPointerDown={(e) => onGrab(t.id, x, y, e)} />
         <text x={12} y={24} fill="var(--color-ivory)" fontFamily="Archivo, sans-serif" fontWeight="800" fontSize="13" letterSpacing="0.06em" style={{ pointerEvents: "none", textTransform: "uppercase" }}>
           {t.name}
         </text>

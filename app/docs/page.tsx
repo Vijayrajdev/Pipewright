@@ -16,7 +16,7 @@ function Section({ id, children }: { id: DocSectionId; children: ReactNode }) {
   return (
     <section id={id} className="scroll-mt-28 border-t border-line pt-10 pb-4">
       <p className="label text-coral-deep">{String(i + 1).padStart(2, "0")}</p>
-      <h2 className="font-wide mt-1 text-3xl leading-none font-black text-ink uppercase md:text-4xl">{s.title}</h2>
+      <h2 className="font-wide mt-1 text-[clamp(1.35rem,7vw,1.875rem)] leading-none font-black text-ink uppercase hyphens-auto [overflow-wrap:anywhere] md:text-4xl">{s.title}</h2>
       <p className="mt-3 font-serif text-xl text-muted italic">{s.summary}</p>
       <div className="docs-body mt-6 space-y-4">{children}</div>
     </section>
@@ -96,6 +96,23 @@ export default function DocsPage() {
         </aside>
 
         <article className="max-w-3xl leading-relaxed">
+          {/* phones and tablets: the contents as a collapsible list (the sidebar is desktop-only) */}
+          <details className="group paper mb-6 border border-line lg:hidden">
+            <summary className="label flex cursor-pointer list-none items-center justify-between p-4 text-ink [&::-webkit-details-marker]:hidden">
+              On this page · {DOC_SECTIONS.length} sections
+              <span className="text-coral transition-transform duration-300 group-open:rotate-45">+</span>
+            </summary>
+            <ol className="grid gap-x-4 border-t border-line p-2 sm:grid-cols-2">
+              {DOC_SECTIONS.map((s, i) => (
+                <li key={s.id}>
+                  <a href={`#${s.id}`} className="flex items-baseline gap-2 px-2 py-2 text-sm text-ink hover:text-coral-deep">
+                    <span className="font-mono text-[10px] text-coral-deep">{String(i + 1).padStart(2, "0")}</span>
+                    {s.title}
+                  </a>
+                </li>
+              ))}
+            </ol>
+          </details>
           <Section id="start">
             <p>
               Pipewright is a junior data engineer in your browser. It does the groundwork that eats a senior engineer&apos;s day:

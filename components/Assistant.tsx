@@ -85,7 +85,7 @@ export function Assistant() {
             No table loaded. <Link href="/schema" className="text-ink underline">Build one</Link> to give Pipewright context.
           </span>
         )}
-        <button onClick={openAiSettings} className="label flex items-center gap-2 border border-line px-2.5 py-1 text-muted transition-colors hover:border-ink hover:text-ink">
+        <button onClick={openAiSettings} className="label flex items-center gap-2 border border-line px-3 py-2 text-muted sm:px-2.5 sm:py-1 transition-colors hover:border-ink hover:text-ink">
           <span className={`h-1.5 w-1.5 rounded-full ${engine ? (engine.onDevice ? "bg-ink" : "bg-coral") : "bg-line"}`} />
           {engine ? engineBadge(engine) : loading ? "Checking AI…" : "AI off"} · settings
         </button>

@@ -126,7 +126,7 @@ export function JoinBuilder({ ws, relations }: { ws: Workspace; relations: Relat
                 )),
               )}
             </select>
-            <button onClick={() => setPlan({ ...active, steps: active.steps.filter((_, j) => j !== i) })} className="px-1.5 text-muted hover:text-coral-deep" aria-label="Remove join">
+            <button onClick={() => setPlan({ ...active, steps: active.steps.filter((_, j) => j !== i) })} className="tap px-1.5 text-muted hover:text-coral-deep" aria-label="Remove join">
               ×
             </button>
           </li>

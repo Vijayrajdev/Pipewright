@@ -24,12 +24,13 @@ export function SchemaGrid({ fields, onChange }: Props) {
   walk(fields, [], 0);
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[720px] border-collapse text-sm">
+    <div className="overflow-x-auto overscroll-x-contain">
+      <p className="label mb-2 text-muted sm:hidden">Swipe the table sideways for more fields →</p>
+      <table className="w-full min-w-[760px] border-collapse text-sm">
         <thead>
           <tr className="text-left text-xs tracking-wide text-muted uppercase">
-            <th className={`${cell} w-[24%]`}>Column</th>
-            <th className={`${cell} w-[13%]`}>Type</th>
+            <th className={`${cell} sticky left-0 z-10 w-[24%] bg-paper`}>Column</th>
+            <th className={`${cell} w-[16%]`}>Type</th>
             <th className={`${cell} w-[7%] text-center`}>Null</th>
             <th className={`${cell} w-[7%] text-center`}>Array</th>
             <th className={cell}>Description</th>
@@ -40,7 +41,8 @@ export function SchemaGrid({ fields, onChange }: Props) {
         <tbody>
           {rows.map(({ field, path, depth }, i) => (
             <tr key={path.join(".")} className="animate-row-in transition-colors hover:bg-coral-soft/40" style={{ animationDelay: `${Math.min(i, 20) * 35}ms` }}>
-              <td className={cell}>
+              {/* the name stays pinned while the row scrolls sideways on small screens */}
+              <td className={`${cell} sticky left-0 z-10 bg-paper`}>
                 <div className="flex items-center" style={{ paddingLeft: depth * 16 }}>
                   {depth > 0 && <span className="mr-1 text-line">└</span>}
                   <input

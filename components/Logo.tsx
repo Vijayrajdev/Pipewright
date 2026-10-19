@@ -34,14 +34,15 @@ export function LogoMark({ size = 32, tile = false, className = "" }: { size?: n
   );
 }
 
-export function Logo({ className = "", size = 30, tagline = false }: { className?: string; size?: number; tagline?: boolean }) {
+/** `compact`: the wordmark scales down with the screen so the top bar fits on small phones. */
+export function Logo({ className = "", size = 30, tagline = false, compact = false }: { className?: string; size?: number; tagline?: boolean; compact?: boolean }) {
   return (
-    <span className={`group inline-flex items-center gap-2.5 ${className}`}>
+    <span className={`group inline-flex items-center ${compact ? "gap-2 sm:gap-2.5" : "gap-2.5"} ${className}`}>
       <span className="transition-transform duration-500 ease-spring group-hover:-rotate-6">
         <LogoMark size={size} />
       </span>
       <span className="flex flex-col leading-none">
-        <span className="font-wide font-black tracking-tight uppercase" style={{ fontSize: Math.round(size * 0.6) }}>
+        <span className="font-wide font-black tracking-tight uppercase" style={{ fontSize: compact ? `clamp(13px, 4.3vw, ${Math.round(size * 0.6)}px)` : Math.round(size * 0.6) }}>
           <span className="text-ink">Pipe</span>
           {/* outline letters fill with ink on hover */}
           <span className="text-transparent transition-colors duration-500 [-webkit-text-stroke:1.2px_var(--color-ink)] group-hover:text-ink">wright</span>

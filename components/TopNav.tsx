@@ -51,9 +51,9 @@ export function TopNav() {
           scrolled ? "border-b border-line/70 bg-ivory/85 py-3 backdrop-blur-md" : "py-5"
         }`}
       >
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-4 md:px-8">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 sm:gap-6 md:px-8">
           <Link href="/" aria-label="Pipewright home" className="animate-fade-in" onClick={() => setOpen(false)}>
-            <Logo />
+            <Logo compact />
           </Link>
 
           <nav className="hidden items-center gap-6 lg:flex" aria-label="Main">
@@ -105,11 +105,12 @@ export function TopNav() {
             ))}
           </nav>
 
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+          {/* on phones search lives in the menu, so the bar fits */}
           <button
             onClick={openPalette}
             aria-label="Search (Ctrl K)"
-            className="group flex h-10 animate-fade-in items-center gap-2 rounded-full border border-line px-3 text-muted transition-all duration-500 ease-out-expo [animation-delay:450ms] hover:border-coral hover:text-coral"
+            className="group hidden h-10 animate-fade-in sm:flex items-center gap-2 rounded-full border border-line px-3 text-muted transition-all duration-500 ease-out-expo [animation-delay:450ms] hover:border-coral hover:text-coral"
           >
             <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" className="transition-transform duration-500 ease-spring group-hover:-rotate-12 group-hover:scale-110">
               <circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" strokeWidth="2.2" />
@@ -162,6 +163,22 @@ export function TopNav() {
             </span>
           ))}
         </nav>
+        <button
+          onClick={() => {
+            setOpen(false);
+            openPalette();
+          }}
+          tabIndex={open ? 0 : -1}
+          className={`mt-8 flex items-center gap-3 self-start rounded-full border border-cream/40 px-5 py-3 text-sm font-semibold text-cream transition-all delay-300 duration-700 ease-out-expo active:scale-95 ${
+            open ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
+          }`}
+        >
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" className="text-coral">
+            <circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" strokeWidth="2.2" />
+            <path d="M15.5 15.5 21 21" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+          </svg>
+          Search tools &amp; docs
+        </button>
         <p className="label mt-10 text-cream/60">Your junior data engineer</p>
       </div>
     </>

@@ -99,14 +99,21 @@ export function Tabs<T extends string>({
   onChange: (id: T) => void;
 }) {
   return (
-    <div role="tablist" className="mb-4 flex flex-wrap gap-x-5 gap-y-2 border-b border-line">
+    // one row that scrolls sideways on phones (fading at the edge), wrapping onto more rows from tablets up
+    <div
+      role="tablist"
+      className="-mx-1 mb-4 flex gap-x-5 overflow-x-auto overscroll-x-contain border-b border-line px-1 [scrollbar-width:none] [mask-image:linear-gradient(to_right,black_88%,transparent)] sm:mx-0 sm:flex-wrap sm:gap-y-2 sm:overflow-visible sm:px-0 sm:[mask-image:none] [&::-webkit-scrollbar]:hidden"
+    >
       {items.map((t) => (
         <button
           key={t.id}
           role="tab"
           aria-selected={t.id === value}
-          onClick={() => onChange(t.id)}
-          className={`label relative -mb-px pb-2.5 transition-colors ${t.id === value ? "text-ink" : "text-muted hover:text-ink"}`}
+          onClick={(e) => {
+            onChange(t.id);
+            e.currentTarget.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
+          }}
+          className={`label relative -mb-px shrink-0 pt-2 pb-3 whitespace-nowrap transition-colors sm:pt-0 sm:pb-2.5 ${t.id === value ? "text-ink" : "text-muted hover:text-ink"}`}
         >
           {t.label}
           <span

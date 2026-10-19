@@ -25,12 +25,15 @@ function Option({ mode, current, title, tag, children, disabled }: { mode: AiMod
   const on = mode === current;
   return (
     <section className={`border transition-colors duration-300 ${on ? "border-ink bg-ink-soft/30" : "border-line"} ${disabled ? "opacity-60" : ""}`}>
-      <label className="flex cursor-pointer items-center gap-3 p-4">
-        <input type="radio" name="ai-mode" className="accent-coral" checked={on} disabled={disabled} onChange={() => updateAiSettings({ mode })} />
-        <span className="font-wide flex-1 text-sm font-black text-ink uppercase">{title}</span>
-        <span className="label border border-line bg-paper px-2 py-0.5 text-coral-deep">{tag}</span>
+      <label className="flex cursor-pointer items-start gap-3 p-4 sm:items-center">
+        <input type="radio" name="ai-mode" className="mt-1 accent-coral sm:mt-0" checked={on} disabled={disabled} onChange={() => updateAiSettings({ mode })} />
+        {/* the tag drops under the title on narrow screens */}
+        <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1.5">
+          <span className="font-wide text-sm font-black text-ink uppercase">{title}</span>
+          <span className="label border border-line bg-paper px-2 py-0.5 text-coral-deep sm:ml-auto">{tag}</span>
+        </span>
       </label>
-      <div className="space-y-3 px-4 pb-4 pl-11 text-sm">{children}</div>
+      <div className="space-y-3 px-4 pb-4 text-sm sm:pl-11">{children}</div>
     </section>
   );
 }

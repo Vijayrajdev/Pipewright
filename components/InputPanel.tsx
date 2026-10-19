@@ -71,7 +71,7 @@ export function InputPanel({ onSubmit }: { onSubmit: (text: string, fileName?: s
                 setFileName(undefined);
                 onSubmit(sample);
               }}
-              className="rounded px-2 py-1 text-ink hover:bg-ink-soft"
+              className="rounded px-2.5 py-2 text-ink hover:bg-ink-soft sm:px-2 sm:py-1"
             >
               {label}
             </button>

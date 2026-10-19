@@ -143,7 +143,7 @@ export function PipelineDrafts() {
               <button
                 key={p.cron}
                 onClick={() => set("schedule", p.cron)}
-                className={`label border px-2 py-1 transition-colors ${spec.schedule === p.cron ? "border-ink bg-ink text-ivory" : "border-line text-ink hover:border-ink"}`}
+                className={`label border px-2.5 py-2 transition-colors sm:px-2 sm:py-1 ${spec.schedule === p.cron ? "border-ink bg-ink text-ivory" : "border-line text-ink hover:border-ink"}`}
               >
                 {p.label}
               </button>
